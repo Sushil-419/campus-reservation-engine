@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Audit History â€” Campus Reservation Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* === Custom styles for Audit History page === */
+    .nav-links a.active {
+      font-weight: 700;
+      border-bottom: 2px solid white;
+      padding-bottom: 2px;
+    }
+
+    /* Summary Bar */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .summary-stat {
+      background: #f8fafc;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .summary-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .summary-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .btn-group {
+      display: inline-flex;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: white;
+    }
+    .btn-group button {
+      border: none;
+      background: transparent;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .btn-group button:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+    .btn-group button.active {
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Vertical Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 2.25rem;
+      margin: 1.5rem 0;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0.75rem;
+      bottom: 0.75rem;
+      left: 0.75rem;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline-node {
+      position: relative;
+      margin-bottom: 1.75rem;
+    }
+    .timeline-node:last-child {
+      margin-bottom: 0;
+    }
+    .timeline-marker {
+      position: absolute;
+      left: -2.25rem;
+      top: 0.35rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      box-shadow: 0 0 0 4px var(--bg);
+      z-index: 2;
+    }
+    .timeline-marker.outcome-success {
+      border-color: var(--success);
+      background: #dcfce7;
+      color: #166534;
+    }
+    .timeline-marker.outcome-conflict {
+      border-color: var(--warning);
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .timeline-marker.outcome-fail,
+    .timeline-marker.outcome-error {
+      border-color: var(--danger);
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .timeline-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.25rem;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .timeline-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .timeline-timestamp {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .timeline-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* Detail Formatting */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+      background: #f8fafc;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .detail-item strong {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+    .detail-reason {
+      margin-top: 0.75rem;
+      background: #fef2f2;
+      border-left: 4px solid var(--danger);
+      padding: 0.65rem 0.85rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.88rem;
+      color: #991b1b;
+    }
+    .detail-raw {
+      margin-top: 0.65rem;
+    }
+    .detail-raw summary {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      user-select: none;
+    }
+    .detail-raw summary:hover {
+      color: var(--primary);
+    }
+    .detail-raw pre {
+      background: #0f172a;
+      color: #f1f5f9;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      margin-top: 0.4rem;
+      overflow-x: auto;
+      max-height: 220px;
+      line-height: 1.4;
+    }
+
+    /* Badges */
+    .badge-action-book {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .badge-action-cancel {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .badge-action-other {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    /* Table View Styles */
+    .table-container {
+      overflow-x: auto;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .table-container table th {
+      background: #f8fafc;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--border);
+      text-align: left;
+    }
+    .table-container table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .table-container table tr:last-child td {
+      border-bottom: none;
+    }
+    .table-container table tr:hover td {
+      background: #f8fafc;
+    }
+
+    /* Error and Empty States */
+    .state-card {
+      text-align: center;
+      padding: 3.5rem 1.5rem;
+    }
+    .state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      line-height: 1;
+    }
+    .state-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .state-description {
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 1.5rem auto;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <h2>KLE Tech (Team 16) — Reservation Engine</h2>
+      <div class="nav-links">
+        <a href="resources.html">Resources</a>
+        <a href="bookings.html">My Bookings</a>
+        <a href="bookings-naming-me.html">Bookings Naming Me</a>
+        <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+
+        <span class="user-info" id="user-info">Loading user...</span>
+        <a href="#" id="nav-logout">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Top Action / Breadcrumbs Bar -->
+    <div class="flex-between mb-2" style="flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="bookings.html" class="btn" style="background: #e2e8f0; color: var(--text); display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 500;">
+          &larr; Back to Bookings
+        </a>
+        <div>
+          <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text); margin: 0;">Booking Audit History</h1>
+          <p class="text-muted text-sm" style="margin: 0;" id="subtitle-bar">
+            Viewing immutable audit trail for Booking <strong id="booking-id-pill">#...</strong>
+          </p>
+        </div>
+      </div>
+      <div id="top-actions" class="hidden">
+        <button type="button" class="btn btn-sm" style="background: #e2e8f0; color: var(--text);" onclick="reloadHistory()">
+          &#x21bb; Refresh History
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Area: Dynamic State Container -->
+    <div id="content-container">
+      <!-- Loading State -->
+      <div class="card state-card" id="state-loading">
+        <div class="state-icon">&#9203;</div>
+        <h2 class="state-title">Loading Audit History...</h2>
+        <p class="state-description">Retrieving immutable audit log trail for this booking.</p>
+      </div>
+
+      <!-- Error State Card (Hidden by default) -->
+      <div class="card state-card hidden" id="state-error">
+        <div class="state-icon" id="error-icon">&#9888;&#65039;</div>
+        <h2 class="state-title" id="error-title">An Error Occurred</h2>
+        <p class="state-description" id="error-message">Could not retrieve booking audit records.</p>
+        <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+          <a href="bookings.html" class="btn btn-primary">&larr; Return to Bookings</a>
+          <button type="button" id="btn-retry" class="btn" style="background: #e2e8f0; color: var(--text);" onclick="reloadHistory()">Try Again</button>
+        </div>
+      </div>
+
+      <!-- Empty State Card (Hidden by default) -->
+      <div class="card state-card hidden" id="state-empty">
+        <div class="state-icon">&#128220;</div>
+        <h2 class="state-title">No Audit Records Found</h2>
+        <p class="state-description">There are no audit log entries recorded for this booking ID.</p>
+        <a href="bookings.html" class="btn btn-primary">&larr; Back to Bookings</a>
+      </div>
+
+      <!-- Loaded Content Wrapper (Hidden until loaded) -->
+      <div id="history-wrapper" class="hidden">
+        <!-- Overview / Metadata Card -->
+        <section class="card mb-2" id="overview-card" aria-label="Booking Overview">
+          <div class="flex-between" style="flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 style="margin-bottom: 0.25rem;">Booking Overview</h3>
+              <p class="text-muted text-sm">Summary inferred from audit trail</p>
+            </div>
+            <div id="status-pill-container"></div>
+          </div>
+          <div class="summary-grid">
+            <div class="summary-stat">
+              <div class="summary-label">Booking ID</div>
+              <div class="summary-value" id="stat-booking-id">#--</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-label">Total Events</div>
+              <div class="summary-value" id="stat-event-count">0</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-label">First Recorded Action</div>
+              <div class="summary-value" id="stat-created-at" style="font-size: 0.95rem; font-weight: 600;">--</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-label">Latest Audit Event</div>
+              <div class="summary-value" id="stat-latest-at" style="font-size: 0.95rem; font-weight: 600;">--</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View and Order Controls -->
+        <div class="controls-bar">
+          <!-- View Toggle: Timeline vs Table -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="text-muted text-sm" style="font-weight: 500;">View Mode:</span>
+            <div class="btn-group" role="group" aria-label="View mode">
+              <button type="button" id="btn-view-timeline" class="active" onclick="setViewMode('timeline')">
+                &#9776; Timeline
+              </button>
+              <button type="button" id="btn-view-table" onclick="setViewMode('table')">
+                &#9638; Table
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Order Toggle -->
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="text-muted text-sm" style="font-weight: 500;">Sort Order:</span>
+            <div class="btn-group" role="group" aria-label="Sort order">
+              <button type="button" id="btn-sort-asc" class="active" onclick="setSortOrder('asc')">
+                &#8593; Chronological (Oldest First)
+              </button>
+              <button type="button" id="btn-sort-desc" onclick="setSortOrder('desc')">
+                &#8595; Most Recent First
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline View Container -->
+        <div id="view-timeline-container">
+          <div class="timeline" id="timeline-list"></div>
+        </div>
+
+        <!-- Table View Container -->
+        <div id="view-table-container" class="hidden">
+          <div class="table-container">
+            <table class="table" id="history-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th style="min-width: 170px;">Timestamp</th>
+                  <th style="min-width: 110px;">Action</th>
+                  <th style="min-width: 110px;">Outcome</th>
+                  <th style="min-width: 130px;">Actor ID</th>
+                  <th>Audit Details</th>
+                </tr>
+              </thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Application State
+    let currentUser = null;
+    let bookingId = null;
+    let auditEntries = [];
+    let currentView = 'timeline'; // 'timeline' | 'table'
+    let currentSort = 'asc';      // 'asc' (chronological) | 'desc' (most recent first)
+
+    // Toast Notification helper
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // HTML escape helper
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Format ISO timestamp into clean, localized string
+    function formatTimestamp(isoStr) {
+      if (!isoStr) return 'N/A';
+      try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return escapeHtml(isoStr);
+        return d.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+      } catch (e) {
+        return escapeHtml(isoStr);
+      }
+    }
+
+    // Relative time helper (e.g. "5m ago", "2h ago")
+    function formatTimeAgo(isoStr) {
+      if (!isoStr) return '';
+      try {
+        const d = new Date(isoStr);
+        const now = new Date();
+        const diffMs = now.getTime() - d.getTime();
+        if (diffMs < 0) return '';
+        const diffSec = Math.floor(diffMs / 1000);
+        if (diffSec < 60) return 'Just now';
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `${diffMin}m ago`;
+        const diffHours = Math.floor(diffMin / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays < 30) return `${diffDays}d ago`;
+        return '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // Helper: Badge HTML for action
+    function getActionBadge(action) {
+      const act = (action || '').toLowerCase();
+      if (act === 'book') {
+        return `<span class="badge badge-action-book">BOOK</span>`;
+      } else if (act === 'cancel') {
+        return `<span class="badge badge-action-cancel">CANCEL</span>`;
+      } else {
+        return `<span class="badge badge-action-other">${escapeHtml((action || 'EVENT').toUpperCase())}</span>`;
+      }
+    }
+
+    // Helper: Badge HTML for outcome
+    function getOutcomeBadge(outcome) {
+      const out = (outcome || '').toLowerCase();
+      if (out === 'success') {
+        return `<span class="badge badge-confirmed">SUCCESS</span>`;
+      } else if (out === 'conflict') {
+        return `<span class="badge badge-pending">CONFLICT</span>`;
+      } else if (out === 'fail' || out === 'error') {
+        return `<span class="badge badge-cancelled">${escapeHtml(out.toUpperCase())}</span>`;
+      } else {
+        return `<span class="badge" style="background:#e2e8f0; color:#475569;">${escapeHtml(out.toUpperCase())}</span>`;
+      }
+    }
+
+    // Helper: Marker class for timeline dot
+    function getMarkerClass(outcome) {
+      const out = (outcome || '').toLowerCase();
+      if (out === 'success') return 'outcome-success';
+      if (out === 'conflict') return 'outcome-conflict';
+      if (out === 'fail' || out === 'error') return 'outcome-fail';
+      return '';
+    }
+
+    // Format actor ID display
+    function formatActor(actorId) {
+      if (actorId === null || actorId === undefined) {
+        return '<span class="text-muted" style="font-style: italic;">System / Automated</span>';
+      }
+      const isSelf = currentUser && currentUser.id === actorId;
+      return `<strong>User #${escapeHtml(actorId)}</strong>${isSelf ? ' <span class="badge badge-confirmed" style="font-size: 0.7rem; padding: 0.1rem 0.4rem;">You</span>' : ''}`;
+    }
+
+    // Format details JSON or structure
+    function renderDetailsContent(detail, entryIndex) {
+      if (!detail || typeof detail !== 'object' || Object.keys(detail).length === 0) {
+        return '<span class="text-muted text-sm">No extra details recorded</span>';
+      }
+
+      let html = '';
+
+      // Check for structured booking details (resource_id, date, start, end)
+      const hasSlotInfo = detail.date || detail.start || detail.end || detail.resource_id !== undefined;
+      if (hasSlotInfo) {
+        html += `<div class="detail-grid">`;
+        if (detail.date) {
+          html += `<div class="detail-item"><strong>Date</strong><span>${escapeHtml(detail.date)}</span></div>`;
+        }
+        if (detail.start || detail.end) {
+          html += `<div class="detail-item"><strong>Time Window</strong><span>${escapeHtml(detail.start || '')} &ndash; ${escapeHtml(detail.end || '')}</span></div>`;
+        }
+        if (detail.resource_id !== undefined) {
+          html += `<div class="detail-item"><strong>Resource ID</strong><span>#${escapeHtml(detail.resource_id)}</span></div>`;
+        }
+        html += `</div>`;
+      }
+
+      // Check for cancellation reason
+      if (detail.reason) {
+        html += `
+          <div class="detail-reason">
+            <strong>Cancellation Reason:</strong> ${escapeHtml(detail.reason)}
+          </div>
+        `;
+      }
+
+      // Render raw collapsible JSON view for complete transparency
+      const jsonStr = JSON.stringify(detail, null, 2);
+      html += `
+        <details class="detail-raw">
+          <summary>View raw JSON</summary>
+          <pre><code>${escapeHtml(jsonStr)}</code></pre>
+        </details>
+      `;
+
+      return html;
+    }
+
+    // 1. Auth check
+    async function checkAuth() {
+      try {
+        const response = await fetch('/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.status === 401 || !response.ok) {
+          window.location.href = 'index.html';
+          return null;
+        }
+
+        const user = await response.json();
+        currentUser = user;
+
+        // Set user info in navbar
+        const userInfoEl = document.getElementById('user-info');
+        if (userInfoEl) {
+          const roleDisplay = user.is_cr ? 'Student (CR)' : (user.role || 'User');
+          userInfoEl.textContent = `${user.name} (${roleDisplay})`;
+        }
+
+        // Show admin link if HOD
+        if (user.role === 'hod') {
+          const navAdmin = document.getElementById('nav-admin');
+          if (navAdmin) navAdmin.classList.remove('hidden');
+        }
+
+        return user;
+      } catch (err) {
+        console.error('Auth verification error:', err);
+        window.location.href = 'index.html';
+        return null;
+      }
+    }
+
+    // Logout handler
+    async function handleLogout(e) {
+      if (e) e.preventDefault();
+      try {
+        await fetch('/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        console.error('Logout error:', err);
+      } finally {
+        window.location.href = 'index.html';
+      }
+    }
+
+    // 2. Fetch booking history
+    async function fetchHistory() {
+      // Read id parameter from URL query string
+      const urlParams = new URLSearchParams(window.location.search);
+      const idParam = urlParams.get('id');
+
+      if (!idParam || isNaN(Number(idParam))) {
+        showErrorState(
+          'Missing or Invalid Booking ID',
+          'Please specify a valid numeric booking ID in the URL parameter (e.g. ?id=123).',
+          '&#9888;&#65039;',
+          false
+        );
+        return;
+      }
+
+      bookingId = parseInt(idParam, 10);
+      document.getElementById('booking-id-pill').textContent = `#${bookingId}`;
+      document.getElementById('stat-booking-id').textContent = `#${bookingId}`;
+
+      // Show loading state
+      setViewState('loading');
+
+      try {
+        const res = await fetch(`/bookings/${bookingId}/history`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (res.status === 401) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        if (res.status === 403) {
+          showErrorState(
+            '403 &mdash; Access Restricted',
+            'You are not authorized to view the audit history for this booking. Access is restricted to the booking creator, named faculty coordinator/guide, or the department HOD.',
+            '&#128274;',
+            false
+          );
+          return;
+        }
+
+        if (res.status === 404) {
+          showErrorState(
+            '404 &mdash; Booking Not Found',
+            `Booking #${bookingId} was not found in the reservation system. It may have been permanently removed or the ID is incorrect.`,
+            '&#128269;',
+            false
+          );
+          return;
+        }
+
+        if (!res.ok) {
+          let errDetail = 'Failed to load booking history.';
+          try {
+            const errData = await res.json();
+            if (errData && errData.detail) errDetail = errData.detail;
+          } catch (e) {}
+          showErrorState(
+            'Error Fetching History',
+            `Server returned HTTP ${res.status}: ${errDetail}`,
+            '&#9888;&#65039;',
+            true
+          );
+          return;
+        }
+
+        const data = await res.json();
+        auditEntries = Array.isArray(data) ? data : [];
+
+        if (auditEntries.length === 0) {
+          setViewState('empty');
+          return;
+        }
+
+        // Render data
+        renderOverview(auditEntries);
+        renderHistoryViews();
+        setViewState('content');
+
+        // Reveal refresh button
+        const topActions = document.getElementById('top-actions');
+        if (topActions) topActions.classList.remove('hidden');
+
+      } catch (err) {
+        console.error('History fetch error:', err);
+        showErrorState(
+          'Network Error',
+          'Failed to connect to the reservation service. Please verify your internet connection and try again.',
+          '&#128225;',
+          true
+        );
+      }
+    }
+
+    // Set high-level visibility state
+    function setViewState(state) {
+      document.getElementById('state-loading').classList.toggle('hidden', state !== 'loading');
+      document.getElementById('state-error').classList.toggle('hidden', state !== 'error');
+      document.getElementById('state-empty').classList.toggle('hidden', state !== 'empty');
+      document.getElementById('history-wrapper').classList.toggle('hidden', state !== 'content');
+    }
+
+    // Show error state with customized message and icon
+    function showErrorState(title, message, iconHtml = '&#9888;&#65039;', showRetry = true) {
+      setViewState('error');
+      document.getElementById('error-title').innerHTML = title;
+      document.getElementById('error-message').innerHTML = message;
+      document.getElementById('error-icon').innerHTML = iconHtml;
+      document.getElementById('btn-retry').classList.toggle('hidden', !showRetry);
+    }
+
+    // Reload history manually
+    function reloadHistory() {
+      fetchHistory();
+    }
+
+    // Render Overview stats and current booking state
+    function renderOverview(entries) {
+      document.getElementById('stat-event-count').textContent = entries.length;
+
+      // Oldest entry (typically index 0 since backend orders by AuditLog.at)
+      const oldest = entries[0];
+      const newest = entries[entries.length - 1];
+
+      document.getElementById('stat-created-at').textContent = formatTimestamp(oldest.at);
+      document.getElementById('stat-latest-at').textContent = formatTimestamp(newest.at);
+
+      // Deduce current booking status from audit trail:
+      // Look for a successful cancel event
+      const hasSuccessfulCancel = entries.some(e => e.action === 'cancel' && e.outcome === 'success');
+      const statusContainer = document.getElementById('status-pill-container');
+
+      if (hasSuccessfulCancel) {
+        statusContainer.innerHTML = '<span class="badge badge-cancelled" style="font-size: 0.85rem; padding: 0.3rem 0.8rem;">Status: CANCELLED</span>';
+      } else {
+        statusContainer.innerHTML = '<span class="badge badge-confirmed" style="font-size: 0.85rem; padding: 0.3rem 0.8rem;">Status: CONFIRMED</span>';
+      }
+    }
+
+    // Get sorted copy of entries
+    function getSortedEntries() {
+      const copy = [...auditEntries];
+      if (currentSort === 'asc') {
+        // Chronological: oldest first
+        return copy.sort((a, b) => new Date(a.at) - new Date(b.at));
+      } else {
+        // Most recent first
+        return copy.sort((a, b) => new Date(b.at) - new Date(a.at));
+      }
+    }
+
+    // Render both Timeline and Table views
+    function renderHistoryViews() {
+      const entries = getSortedEntries();
+      renderTimelineView(entries);
+      renderTableView(entries);
+    }
+
+    // Render Timeline View
+    function renderTimelineView(entries) {
+      const listEl = document.getElementById('timeline-list');
+      if (!listEl) return;
+
+      listEl.innerHTML = entries.map((entry, idx) => {
+        const markerClass = getMarkerClass(entry.outcome);
+        const actionBadge = getActionBadge(entry.action);
+        const outcomeBadge = getOutcomeBadge(entry.outcome);
+        const relativeTime = formatTimeAgo(entry.at);
+        const timeFormatted = formatTimestamp(entry.at);
+        const actorFormatted = formatActor(entry.actor_id);
+        const detailsHtml = renderDetailsContent(entry.detail, idx);
+
+        let markerIcon = '&#9679;';
+        if (entry.outcome === 'success') markerIcon = '&#10003;';
+        if (entry.outcome === 'conflict') markerIcon = '!';
+        if (entry.outcome === 'fail' || entry.outcome === 'error') markerIcon = '&#10007;';
+
+        return `
+          <div class="timeline-node">
+            <div class="timeline-marker ${markerClass}">
+              <span>${markerIcon}</span>
+            </div>
+            <div class="timeline-card">
+              <div class="timeline-header">
+                <div>
+                  <div class="timeline-timestamp">${escapeHtml(timeFormatted)}</div>
+                  ${relativeTime ? `<span class="text-muted text-sm">${escapeHtml(relativeTime)}</span>` : ''}
+                </div>
+                <div class="timeline-meta">
+                  ${actionBadge}
+                  ${outcomeBadge}
+                </div>
+              </div>
+              <div style="margin-top: 0.4rem; font-size: 0.875rem;">
+                <span class="text-muted">Actor:</span> ${actorFormatted}
+              </div>
+              ${detailsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render Table View
+    function renderTableView(entries) {
+      const tbody = document.getElementById('table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = entries.map((entry, idx) => {
+        const actionBadge = getActionBadge(entry.action);
+        const outcomeBadge = getOutcomeBadge(entry.outcome);
+        const timeFormatted = formatTimestamp(entry.at);
+        const relativeTime = formatTimeAgo(entry.at);
+        const actorFormatted = formatActor(entry.actor_id);
+        const detailsHtml = renderDetailsContent(entry.detail, `table-${idx}`);
+        const seqNumber = currentSort === 'asc' ? idx + 1 : entries.length - idx;
+
+        return `
+          <tr>
+            <td style="color: var(--text-muted); font-weight: 600;">${seqNumber}</td>
+            <td>
+              <div style="font-weight: 600; color: var(--text);">${escapeHtml(timeFormatted)}</div>
+              ${relativeTime ? `<div class="text-muted text-sm">${escapeHtml(relativeTime)}</div>` : ''}
+            </td>
+            <td>${actionBadge}</td>
+            <td>${outcomeBadge}</td>
+            <td>${actorFormatted}</td>
+            <td>${detailsHtml}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Toggle view between Timeline and Table
+    function setViewMode(mode) {
+      currentView = mode;
+      const btnTimeline = document.getElementById('btn-view-timeline');
+      const btnTable = document.getElementById('btn-view-table');
+      const viewTimeline = document.getElementById('view-timeline-container');
+      const viewTable = document.getElementById('view-table-container');
+
+      if (mode === 'timeline') {
+        btnTimeline.classList.add('active');
+        btnTable.classList.remove('active');
+        viewTimeline.classList.remove('hidden');
+        viewTable.classList.add('hidden');
+      } else {
+        btnTable.classList.add('active');
+        btnTimeline.classList.remove('active');
+        viewTable.classList.remove('hidden');
+        viewTimeline.classList.add('hidden');
+      }
+    }
+
+    // Toggle sort order between Ascending (Chronological) and Descending (Most Recent First)
+    function setSortOrder(order) {
+      currentSort = order;
+      const btnAsc = document.getElementById('btn-sort-asc');
+      const btnDesc = document.getElementById('btn-sort-desc');
+
+      if (order === 'asc') {
+        btnAsc.classList.add('active');
+        btnDesc.classList.remove('active');
+      } else {
+        btnDesc.classList.add('active');
+        btnAsc.classList.remove('active');
+      }
+
+      renderHistoryViews();
+    }
+
+    // Page initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Authenticate user
+      const user = await checkAuth();
+      if (!user) return; // redirected to login
+
+      // 2. Setup logout listener
+      const logoutBtn = document.getElementById('nav-logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+      }
+
+      // 3. Load booking history
+      await fetchHistory();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Book shared rooms, labs and equipment without double-booking headaches.">
+  <title>SyncSpace — Reservation &amp; Scheduling Engine</title>
+  <link rel="stylesheet" href="/static/style.css?v=v7">
+  <link rel="stylesheet" href="/static/landing.css?v=v2">
+</head>
+<body class="landing-body">
+
+  <header class="landing-nav">
+    <a href="/welcome.html" class="landing-brand" aria-label="SyncSpace home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15.5" rx="3"/>
+          <path d="M3.5 10h17M8 3v4M16 3v4"/>
+          <path d="M9 15.2l2.1 2.1 4-4"/>
+        </svg>
+      </span>
+      <span class="landing-brand-name">SyncSpace</span>
+    </a>
+    <nav class="landing-nav-actions" aria-label="Account">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme"></button>
+      <a href="/login.html" class="landing-btn landing-btn-outline">Sign In</a>
+      <a href="/signup.html" class="landing-btn landing-btn-primary">Sign Up</a>
+    </nav>
+  </header>
+
+  <main class="landing-main">
+    <section class="landing-hero">
+      <div class="landing-hero-copy">
+        <span class="landing-pill">Conflict-free resource booking</span>
+        <h1 class="landing-title">
+          Smart scheduling for
+          <span class="landing-title-accent">rooms, labs &amp; equipment</span>
+        </h1>
+        <p class="landing-lead">
+          Pick a resource, see the day's free slots at a glance, and book in seconds.
+          Every booking is checked by the database itself, so two people can never
+          end up with the same slot — even when they click at the exact same moment.
+        </p>
+        <a href="/signup.html" class="landing-btn landing-btn-primary landing-btn-lg">Get started</a>
+        <ul class="landing-checklist">
+          <li>Guaranteed no double-bookings</li>
+          <li>Live free-slot timeline in your timezone</li>
+          <li>Admin approvals, quotas &amp; an AI assistant</li>
+        </ul>
+      </div>
+
+      <div class="landing-hero-visual" aria-hidden="true">
+        <div class="preview-card">
+          <div class="preview-scanline"></div>
+          <div class="preview-head">
+            <span class="preview-title">3D Printer</span>
+            <span class="preview-date">Today</span>
+          </div>
+          <ul class="preview-slots">
+            <li class="preview-slot is-free"><span>09:00 – 10:00</span><span class="preview-tag">Free</span></li>
+            <li class="preview-slot is-booked"><span>10:00 – 11:00</span><span class="preview-tag">Booked</span></li>
+            <li class="preview-slot is-pending"><span>11:00 – 12:00</span><span class="preview-tag">Pending</span></li>
+            <li class="preview-slot is-free"><span>12:00 – 13:00</span><span class="preview-tag">Free</span></li>
+          </ul>
+          <span class="preview-badge">0 double-bookings</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-steps" aria-labelledby="how-it-works">
+      <h2 id="how-it-works">How it works</h2>
+      <div class="landing-steps-grid">
+        <article class="step-card">
+          <div class="step-card-top">
+            <span class="step-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+            </span>
+            <span class="step-num">01</span>
+          </div>
+          <h3>Pick a resource</h3>
+          <p>Choose a meeting room, lab, or piece of equipment</p>
+        </article>
+        <article class="step-card">
+          <div class="step-card-top">
+            <span class="step-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/>
+              </svg>
+            </span>
+            <span class="step-num">02</span>
+          </div>
+          <h3>Book a free slot</h3>
+          <p>See the day's open slots and reserve one in a click</p>
+        </article>
+        <article class="step-card">
+          <div class="step-card-top">
+            <span class="step-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.2l2.4 2.4 4.6-4.6"/>
+              </svg>
+            </span>
+            <span class="step-num">03</span>
+          </div>
+          <h3>Get approved</h3>
+          <p>An admin confirms your booking — and it's yours</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/theme.js?v=redesign-8"></script>
+  <script src="/static/auth.js?v=redesign-8"></script>
+</body>
+</html>

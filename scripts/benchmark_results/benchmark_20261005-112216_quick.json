@@ -1,0 +1,65 @@
+{
+  "threads": 20,
+  "rounds": 2,
+  "think_ms": 20,
+  "results": [
+    {
+      "scenario": "A naive (no constraint, no locks)",
+      "successes_per_round": [
+        19,
+        20
+      ],
+      "expected_per_round": 1,
+      "correct": false,
+      "double_bookings": 37,
+      "p50_ms": 33.2,
+      "p95_ms": 51.9,
+      "throughput_rps": 456.6,
+      "wall_ms_per_round": 43.8
+    },
+    {
+      "scenario": "B engine, capacity 1",
+      "successes_per_round": [
+        1,
+        1
+      ],
+      "expected_per_round": 1,
+      "correct": true,
+      "double_bookings": 0,
+      "p50_ms": 37.4,
+      "p95_ms": 43.1,
+      "throughput_rps": 499.6,
+      "wall_ms_per_round": 40.0,
+      "db_max_rows_per_slot": 1
+    },
+    {
+      "scenario": "C engine, capacity 5",
+      "successes_per_round": [
+        5,
+        5
+      ],
+      "expected_per_round": 5,
+      "correct": true,
+      "double_bookings": 0,
+      "p50_ms": 33.0,
+      "p95_ms": 48.2,
+      "throughput_rps": 407.0,
+      "wall_ms_per_round": 49.1,
+      "db_max_rows_per_slot": 5
+    },
+    {
+      "scenario": "D engine, N different resources",
+      "successes_per_round": [
+        20,
+        20
+      ],
+      "expected_per_round": 20,
+      "correct": true,
+      "double_bookings": 0,
+      "p50_ms": 50.7,
+      "p95_ms": 61.7,
+      "throughput_rps": 357.8,
+      "wall_ms_per_round": 55.9
+    }
+  ]
+}

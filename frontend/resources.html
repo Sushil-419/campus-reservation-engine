@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Catalogue — Campus Reservation Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-links a.active {
+      font-weight: 700;
+      border-bottom: 2px solid white;
+      padding-bottom: 2px;
+    }
+    .resource-card {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--border);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .resource-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border-color: var(--primary);
+    }
+    .resource-card:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .policy-guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.75rem;
+    }
+    .policy-rule-item {
+      background: #f8fafc;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .policy-rule-item strong.rule-title {
+      display: block;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+    .policy-rule-item ul {
+      margin-left: 1.2rem;
+      margin-top: 0.2rem;
+    }
+    .policy-rule-item li {
+      margin-bottom: 0.15rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <h2>KLE Tech (Team 16) � Reservation Engine</h2>
+      <div class="nav-links">
+        <a href="resources.html" class="active">Resources</a>
+        <a href="bookings.html">My Bookings</a>
+        <a href="named-me.html">Bookings Naming Me</a>
+        <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+
+        <span class="user-info" id="user-info">Loading user...</span>
+        <a href="#" id="nav-logout">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Header with Page Title & Short Description -->
+    <div class="flex-between mb-2">
+      <div>
+        <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text);">Resource Catalogue</h1>
+        <p class="text-muted text-sm">Browse campus facilities, check real-time availability, and reserve slots.</p>
+      </div>
+      <div id="results-count" class="text-muted text-sm"></div>
+    </div>
+
+    <!-- Booking Eligibility & Requirements Guide -->
+    <section class="card mb-2" id="rules-card" aria-labelledby="rules-heading">
+      <div class="flex-between" style="cursor: pointer;" id="toggle-rules-btn" role="button" tabindex="0" aria-expanded="true">
+        <div class="flex gap-1" style="align-items: center;">
+          <span style="font-size: 1.15rem;">ℹ️</span>
+          <h3 id="rules-heading" style="margin-bottom: 0; font-size: 1rem;">Booking Requirements &amp; Policy Guide</h3>
+        </div>
+        <span id="rules-toggle-text" class="text-muted text-sm">Collapse ▲</span>
+      </div>
+      <div id="rules-content" class="mt-2">
+        <p class="text-muted text-sm mb-1">
+          Each resource type enforces specific approval and endorsement policies based on the booker's role:
+        </p>
+        <div class="policy-guide-grid">
+          <div class="policy-rule-item">
+            <strong class="rule-title">🏫 Classroom</strong>
+            <ul>
+              <li><strong>Student:</strong> Needs faculty coordinator</li>
+              <li><strong>CR:</strong> Own department only</li>
+              <li><strong>Faculty / HOD:</strong> Direct booking</li>
+            </ul>
+          </div>
+          <div class="policy-rule-item">
+            <strong class="rule-title">🔬 Lab</strong>
+            <ul>
+              <li><strong>Student:</strong> Needs faculty guide</li>
+              <li><strong>Lab Instructor:</strong> Own department only</li>
+              <li><strong>Faculty:</strong> Direct booking</li>
+            </ul>
+          </div>
+          <div class="policy-rule-item">
+            <strong class="rule-title">🛠️ Project Space</strong>
+            <ul>
+              <li><strong>Student:</strong> Needs faculty guide</li>
+              <li><strong>Others:</strong> Direct booking</li>
+            </ul>
+          </div>
+          <div class="policy-rule-item">
+            <strong class="rule-title">🧪 Research Center</strong>
+            <ul>
+              <li><strong>Student:</strong> Needs faculty guide</li>
+              <li><strong>Lab Instructor:</strong> Not available</li>
+              <li><strong>Faculty / HOD:</strong> Direct booking</li>
+            </ul>
+          </div>
+          <div class="policy-rule-item">
+            <strong class="rule-title">🎤 Seminar Hall</strong>
+            <ul>
+              <li><strong>Student:</strong> Needs faculty coordinator</li>
+              <li><strong>Faculty / HOD:</strong> Direct booking</li>
+            </ul>
+          </div>
+          <div class="policy-rule-item">
+            <strong class="rule-title">🎭 Auditorium</strong>
+            <ul>
+              <li><strong>Student:</strong> Needs faculty coordinator</li>
+              <li><strong>Lab Instructor:</strong> Not available</li>
+              <li><strong>Faculty / HOD:</strong> Direct booking</li>
+            </ul>
+          </div>
+          <div class="policy-rule-item">
+            <strong class="rule-title">⚽ Sports</strong>
+            <ul>
+              <li><strong>All Roles:</strong> Direct booking for everyone</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter Bar -->
+    <section class="card mb-2" aria-label="Resource Filters">
+      <form id="filter-form" class="filters" onsubmit="handleFilterSubmit(event)">
+        <div class="form-group" style="flex: 2; min-width: 200px;">
+          <label for="filter-q">Search Name</label>
+          <input type="text" id="filter-q" placeholder="e.g. Lab 102, Audi, Seminar..." autocomplete="off">
+        </div>
+        <div class="form-group" style="flex: 1.2; min-width: 170px;">
+          <label for="filter-building">Building</label>
+          <select id="filter-building">
+            <option value="">All Buildings</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex: 0.8; min-width: 100px;">
+          <label for="filter-floor">Floor</label>
+          <input type="number" id="filter-floor" placeholder="Any" min="0" step="1">
+        </div>
+        <div class="form-group" style="flex: 1.2; min-width: 170px;">
+          <label for="filter-type">Resource Type</label>
+          <select id="filter-type">
+            <option value="">All Types</option>
+            <option value="classroom">Classroom</option>
+            <option value="lab">Lab</option>
+            <option value="project_space">Project Space</option>
+            <option value="research_center">Research Center</option>
+            <option value="seminar_hall">Seminar Hall</option>
+            <option value="auditorium">Auditorium</option>
+            <option value="sports">Sports</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width: auto; display: flex; gap: 0.5rem; align-items: flex-end;">
+          <button type="submit" class="btn btn-primary">Filter</button>
+          <button type="button" id="btn-reset" class="btn" style="background: #e2e8f0; color: #334155;">Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Paginated Resource Cards List -->
+    <section id="resource-container" aria-label="Available Resources">
+      <div id="resource-list" class="grid grid-3">
+        <div class="text-center text-muted" style="grid-column: 1 / -1; padding: 3rem;">
+          Loading resources catalogue...
+        </div>
+      </div>
+      <!-- Pagination Controls Container -->
+      <nav id="pagination-container" aria-label="Catalogue Pagination"></nav>
+    </section>
+  </main>
+
+  <script>
+    // State
+    let currentUser = null;
+    let currentPage = 1;
+    const pageSize = 20;
+
+    // Toast Notification helper
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // HTML escape helper
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Pretty label for resource types
+    function formatTypeLabel(type) {
+      const typeMap = {
+        classroom: 'Classroom',
+        lab: 'Lab',
+        project_space: 'Project Space',
+        research_center: 'Research Center',
+        seminar_hall: 'Seminar Hall',
+        auditorium: 'Auditorium',
+        sports: 'Sports'
+      };
+      return typeMap[type] || type;
+    }
+
+    // Role display formatter
+    function formatRoleDisplay(user) {
+      if (!user) return '';
+      if (user.is_cr) {
+        return 'Student (CR)';
+      }
+      const roleMap = {
+        student: 'Student',
+        faculty: 'Faculty',
+        lab_instructor: 'Lab Instructor',
+        hod: 'HOD'
+      };
+      return roleMap[user.role] || user.role;
+    }
+
+    // Authentication Check on Load
+    async function checkAuth() {
+      try {
+        const response = await fetch('/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.status === 401 || !response.ok) {
+          window.location.href = 'index.html';
+          return null;
+        }
+
+        const user = await response.json();
+        currentUser = user;
+
+        // Populate user name and role in nav
+        const userInfoEl = document.getElementById('user-info');
+        if (userInfoEl) {
+          userInfoEl.textContent = `${user.name} (${formatRoleDisplay(user)})`;
+        }
+
+        // Show admin link if HOD
+        if (user.role === 'hod') {
+          const adminLink = document.getElementById('nav-admin');
+          if (adminLink) {
+            adminLink.classList.remove('hidden');
+          }
+        }
+
+        return user;
+      } catch (err) {
+        console.error('Authentication verification error:', err);
+        window.location.href = 'index.html';
+        return null;
+      }
+    }
+
+    // Logout Handler
+    async function handleLogout(e) {
+      if (e) e.preventDefault();
+      try {
+        const response = await fetch('/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          window.location.href = 'index.html';
+        } else {
+          showToast('Failed to log out cleanly. Redirecting...', 'error');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 800);
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+        window.location.href = 'index.html';
+      }
+    }
+
+    // Load Distinct Buildings for Dropdown
+    async function loadBuildings() {
+      const select = document.getElementById('filter-building');
+      try {
+        const res = await fetch('/resources/buildings', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const buildings = await res.json();
+        const currentSelected = select.value;
+        select.innerHTML = '<option value="">All Buildings</option>';
+
+        if (Array.isArray(buildings)) {
+          buildings.forEach(b => {
+            if (b) {
+              const opt = document.createElement('option');
+              opt.value = b;
+              opt.textContent = b;
+              if (b === currentSelected) opt.selected = true;
+              select.appendChild(opt);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load buildings:', err);
+        showToast('Unable to load buildings list', 'error');
+      }
+    }
+
+    // Fetch and render resources list
+    async function loadResources(page = 1) {
+      currentPage = page;
+      const building = document.getElementById('filter-building').value.trim();
+      const floorInput = document.getElementById('filter-floor').value.trim();
+      const type = document.getElementById('filter-type').value.trim();
+      const q = document.getElementById('filter-q').value.trim();
+
+      const params = new URLSearchParams();
+      if (building) params.append('building', building);
+      if (floorInput !== '') {
+        const floorNum = parseInt(floorInput, 10);
+        if (!isNaN(floorNum)) {
+          params.append('floor', floorNum);
+        }
+      }
+      if (type) params.append('type', type);
+      if (q) params.append('q', q);
+      params.append('page', currentPage);
+      params.append('page_size', pageSize);
+
+      const listContainer = document.getElementById('resource-list');
+      listContainer.innerHTML = '<div class="text-center text-muted" style="grid-column: 1 / -1; padding: 2.5rem;">Loading resources...</div>';
+
+      try {
+        const res = await fetch(`/resources/?${params.toString()}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (res.status === 401) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch resources (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        renderResourceCards(data);
+        renderPagination(data.total, data.page, data.page_size);
+      } catch (err) {
+        console.error('Error fetching resources:', err);
+        listContainer.innerHTML = '<div class="text-center" style="grid-column: 1 / -1; padding: 2.5rem; color: var(--danger);">Failed to load resources catalogue. Please try again.</div>';
+        showToast('Error loading resources', 'error');
+      }
+    }
+
+    // Render cards
+    function renderResourceCards(data) {
+      const container = document.getElementById('resource-list');
+      const countEl = document.getElementById('results-count');
+
+      const items = data.items || [];
+      const total = data.total || 0;
+
+      if (countEl) {
+        if (total === 0) {
+          countEl.textContent = '0 resources found';
+        } else {
+          const startIdx = (data.page - 1) * data.page_size + 1;
+          const endIdx = Math.min(startIdx + items.length - 1, total);
+          countEl.textContent = `Showing ${startIdx}-${endIdx} of ${total} resources`;
+        }
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="empty" style="grid-column: 1 / -1;">
+            <div class="empty-icon">🏢</div>
+            <h3>No resources found</h3>
+            <p class="text-muted">No resources match the selected filters or search terms.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = items.map(r => `
+        <div class="card resource-card"
+             tabindex="0"
+             role="link"
+             aria-label="${escapeHtml(r.name)}, ${escapeHtml(r.building)} Floor ${r.floor}"
+             onclick="navigateToResource(${r.id})"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();navigateToResource(${r.id});}">
+          <div>
+            <div class="flex-between mb-1" style="align-items: flex-start; gap: 0.5rem;">
+              <h3 style="margin-bottom: 0; font-size: 1.15rem; color: var(--text);">${escapeHtml(r.name)}</h3>
+              <span class="badge badge-type">${formatTypeLabel(r.type)}</span>
+            </div>
+            <div class="text-muted text-sm" style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.75rem;">
+              <div><strong style="color: var(--text);">Location:</strong> ${escapeHtml(r.building)}, Floor ${r.floor}</div>
+              <div><strong style="color: var(--text);">Department:</strong> ${r.department ? escapeHtml(r.department) : '<span style="font-style: italic;">Campus Shared</span>'}</div>
+              <div><strong style="color: var(--text);">Capacity:</strong> ${r.capacity !== null && r.capacity !== undefined ? r.capacity + ' people' : 'Not specified'}</div>
+            </div>
+          </div>
+          <div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <span class="text-sm text-muted" style="font-size: 0.8rem;">Click to check availability</span>
+            <button type="button" class="btn btn-sm btn-primary" onclick="event.stopPropagation(); navigateToResource(${r.id});">View Schedule &rarr;</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Card navigation
+    function navigateToResource(resourceId) {
+      window.location.href = `availability.html?id=${encodeURIComponent(resourceId)}`;
+    }
+
+    // Pagination render
+    function renderPagination(total, page, pageSize) {
+      const paginationContainer = document.getElementById('pagination-container');
+      if (!paginationContainer) return;
+
+      const totalPages = Math.ceil(total / pageSize);
+      if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="pagination">';
+
+      // Prev button
+      html += `<button type="button" ${page <= 1 ? 'disabled' : ''} onclick="loadResources(${page - 1})" aria-label="Previous page">&laquo; Prev</button>`;
+
+      // Page buttons with smart windowing
+      const maxButtons = 5;
+      let startPage = Math.max(1, page - 2);
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+
+      if (startPage > 1) {
+        html += `<button type="button" onclick="loadResources(1)">1</button>`;
+        if (startPage > 2) {
+          html += `<button type="button" disabled style="border:none; background:transparent;">...</button>`;
+        }
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        html += `<button type="button" class="${p === page ? 'active' : ''}" onclick="loadResources(${p})" aria-label="Page ${p}" ${p === page ? 'aria-current="page"' : ''}>${p}</button>`;
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          html += `<button type="button" disabled style="border:none; background:transparent;">...</button>`;
+        }
+        html += `<button type="button" onclick="loadResources(${totalPages})">${totalPages}</button>`;
+      }
+
+      // Next button
+      html += `<button type="button" ${page >= totalPages ? 'disabled' : ''} onclick="loadResources(${page + 1})" aria-label="Next page">Next &raquo;</button>`;
+      html += '</div>';
+
+      paginationContainer.innerHTML = html;
+    }
+
+    // Handle filter submit
+    function handleFilterSubmit(e) {
+      if (e) e.preventDefault();
+      loadResources(1);
+    }
+
+    // Reset filters
+    function resetFilters() {
+      document.getElementById('filter-q').value = '';
+      document.getElementById('filter-building').value = '';
+      document.getElementById('filter-floor').value = '';
+      document.getElementById('filter-type').value = '';
+      loadResources(1);
+    }
+
+    // Toggle Policy Rules collapsible
+    function initRulesToggle() {
+      const toggleBtn = document.getElementById('toggle-rules-btn');
+      const content = document.getElementById('rules-content');
+      const toggleText = document.getElementById('rules-toggle-text');
+
+      if (!toggleBtn || !content || !toggleText) return;
+
+      const toggleAction = () => {
+        const isHidden = content.classList.contains('hidden');
+        if (isHidden) {
+          content.classList.remove('hidden');
+          toggleText.textContent = 'Collapse ▲';
+          toggleBtn.setAttribute('aria-expanded', 'true');
+        } else {
+          content.classList.add('hidden');
+          toggleText.textContent = 'Expand ▼';
+          toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+      };
+
+      toggleBtn.addEventListener('click', toggleAction);
+      toggleBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleAction();
+        }
+      });
+    }
+
+    // Debounced search on input
+    let searchDebounceTimeout = null;
+    function initSearchDebounce() {
+      const qInput = document.getElementById('filter-q');
+      if (qInput) {
+        qInput.addEventListener('input', () => {
+          clearTimeout(searchDebounceTimeout);
+          searchDebounceTimeout = setTimeout(() => {
+            loadResources(1);
+          }, 350);
+        });
+      }
+
+      // Also trigger filter on select changes immediately
+      const buildingSelect = document.getElementById('filter-building');
+      if (buildingSelect) {
+        buildingSelect.addEventListener('change', () => loadResources(1));
+      }
+
+      const typeSelect = document.getElementById('filter-type');
+      if (typeSelect) {
+        typeSelect.addEventListener('change', () => loadResources(1));
+      }
+
+      const floorInput = document.getElementById('filter-floor');
+      if (floorInput) {
+        floorInput.addEventListener('input', () => {
+          clearTimeout(searchDebounceTimeout);
+          searchDebounceTimeout = setTimeout(() => {
+            loadResources(1);
+          }, 350);
+        });
+      }
+    }
+
+    // Page initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Auth check
+      const user = await checkAuth();
+      if (!user) return; // redirected
+
+      // 2. Setup navigation events
+      const logoutBtn = document.getElementById('nav-logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+      }
+
+      // 3. Setup reset button
+      const resetBtn = document.getElementById('btn-reset');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', resetFilters);
+      }
+
+      // 4. Setup rules guide toggle
+      initRulesToggle();
+
+      // 5. Setup live filter search
+      initSearchDebounce();
+
+      // 6. Load buildings dropdown and resources list concurrently
+      await Promise.all([
+        loadBuildings(),
+        loadResources(1)
+      ]);
+    });
+  </script>
+</body>
+</html>

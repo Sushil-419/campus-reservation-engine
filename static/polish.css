@@ -1,0 +1,570 @@
+/* ================================================================
+   SyncSpace — UI polish layer (loaded after style.css on index.html)
+
+   Presentation only: no element ids, classes or texts that app.js or
+   the tests rely on are changed. Most rules are scoped under #timeline
+   so they win over style.css without !important.
+
+   motion.js adds a few data attributes to timeline rows
+   (data-state, data-hour-start, data-now) and builds the day overview
+   strip; everything here still works without them, just plainer.
+   ================================================================ */
+
+/* ── Type: real headings instead of tiny all-caps labels ───── */
+
+header h1,
+.panel h2,
+.booking-slot-label {
+  font-family: var(--font-display);
+}
+
+header h1 {
+  font-size: 1.1875rem;
+  font-weight: 700;
+}
+
+.panel h2 {
+  margin: 0 0 var(--sp-1);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--text);
+}
+
+.panel h2 .timeline-tz {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+#timeline-panel #resource-hours-hint {
+  margin: 0 0 var(--sp-6);
+  color: var(--muted);
+}
+
+/* ── Header: frosted, so the timeline scrolls underneath it ─── */
+
+header {
+  background: color-mix(in srgb, var(--panel-bg) 84%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
+}
+
+/* ── Day overview strip (built by motion.js) ───────────────── */
+
+.tl-overview {
+  margin: 0 0 var(--sp-6);
+}
+
+.tl-overview[hidden] {
+  display: none;
+}
+
+.tl-bar {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  height: 14px;
+}
+
+.tl-seg {
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 3px;
+  background: var(--free-border);
+  cursor: pointer;
+  transform-origin: 50% 100%;
+  transition: transform 0.18s var(--ease-out), filter 0.18s;
+}
+
+.tl-seg:hover {
+  transform: scaleY(1.5);
+  filter: brightness(1.08);
+}
+
+.tl-seg[data-state="mine"]     { background: var(--accent); }
+.tl-seg[data-state="pending"]  { background: var(--warn-dot); }
+.tl-seg[data-state="booked"]   { background: var(--border-strong); }
+.tl-seg[data-state="past"]     { background: var(--border); }
+.tl-seg[data-state="blackout"] {
+  background: repeating-linear-gradient(135deg, var(--border-strong) 0 3px, transparent 3px 6px);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.tl-now {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--danger);
+  pointer-events: none;
+}
+
+.tl-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.tl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-6);
+  margin: var(--sp-4) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.tl-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.tl-legend b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.tl-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--free-border);
+}
+
+.tl-legend i[data-state="mine"]     { background: var(--accent); }
+.tl-legend i[data-state="pending"]  { background: var(--warn-dot); }
+.tl-legend i[data-state="booked"]   { background: var(--border-strong); }
+.tl-legend i[data-state="blackout"] {
+  background: repeating-linear-gradient(135deg, var(--border-strong) 0 2px, transparent 2px 4px);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* ── Timeline rows ─────────────────────────────────────────── */
+
+#timeline {
+  gap: 6px;
+}
+
+#timeline .slot {
+  --bar: var(--border-strong);
+  position: relative;
+  min-height: 3rem;
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) 1.375rem;
+  gap: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-bg);
+  color: var(--muted);
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s var(--ease-out);
+}
+
+/* state bar on the left edge */
+#timeline .slot::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 9px;
+  bottom: 9px;
+  width: 4px;
+  border-radius: var(--radius-full);
+  background: var(--bar);
+  transition: background-color 0.2s, transform 0.2s var(--ease-out);
+}
+
+/* One line per hour on wide screens: :00 on the left, :30 on the right.
+   (Member view only; admin rows carry approve/reject controls and keep
+   the full width.) motion.js marks half-past rows with data-half. */
+@media (min-width: 900px) {
+  #timeline:not(:has(.admin-slot)) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+  }
+  #timeline:not(:has(.admin-slot)) > .slot {
+    grid-column: 1;
+  }
+  #timeline:not(:has(.admin-slot)) > .slot[data-half] {
+    grid-column: 2;
+  }
+}
+
+/* Single column (admin view, small screens): a new hour starts a group */
+@media (max-width: 899px) {
+  #timeline .slot[data-hour-start] {
+    margin-top: var(--sp-3);
+  }
+}
+#timeline:has(.admin-slot) .slot[data-hour-start] {
+  margin-top: var(--sp-3);
+}
+
+/* time label: tabular so every row lines up */
+#timeline .slot > span:first-child,
+#timeline .slot-time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+#timeline .capacity-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Free (member) */
+#timeline .slot.free {
+  --bar: var(--free-border);
+  background: var(--panel-bg);
+  border-color: var(--border);
+}
+
+#timeline .slot.free > span:first-child {
+  color: var(--text);
+  font-weight: 600;
+}
+
+#timeline .slot.free:not(.past):not(.my-booked) {
+  cursor: pointer;
+}
+
+#timeline .slot.free:not(.past):not(.my-booked):hover {
+  background: var(--free);
+  border-color: color-mix(in srgb, var(--free-border) 55%, var(--border));
+  box-shadow: 0 6px 18px -8px rgba(34, 197, 94, 0.45);
+  transform: translateX(3px);
+}
+
+#timeline .slot.free:not(.past):not(.my-booked):hover::before {
+  transform: scaleY(1.15);
+}
+
+#timeline .slot.free button {
+  height: 2rem;
+  min-width: 4.75rem;
+  padding: 0 var(--sp-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  box-shadow: none;
+  transition: background-color 0.18s, color 0.18s, border-color 0.18s, transform 0.12s;
+}
+
+#timeline .slot.free:not(.past):not(.my-booked):hover button,
+#timeline .slot.free button:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+#timeline .slot.free:not(.past):not(.my-booked) button:active {
+  transform: scale(0.95);
+}
+
+/* Mine */
+#timeline .slot.free.my-booked {
+  --bar: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+#timeline .slot.free.my-booked > span:first-child {
+  color: var(--accent);
+}
+
+#timeline .slot.free.my-booked button,
+#timeline .slot.free.my-booked button:disabled {
+  opacity: 1;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+#timeline .slot.free.my-booked button::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* A booking of yours that covers the whole room ("You (pending)") */
+#timeline .slot.booked[data-state="mine"] {
+  --bar: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  color: var(--accent);
+}
+
+#timeline .slot.booked[data-state="mine"] > span:first-child {
+  font-weight: 600;
+}
+
+#timeline .slot.booked[data-state="mine"] .booked-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Taken by someone else */
+#timeline .slot.booked {
+  --bar: var(--border-strong);
+  background: var(--panel-bg-subtle);
+}
+
+#timeline .slot.booked .booked-label {
+  color: var(--muted);
+}
+
+/* Maintenance blackout: hatched, so it reads differently from "taken" */
+#timeline .slot[data-state="blackout"] {
+  --bar: var(--muted-2);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--border-strong) 45%, transparent) 9px 10px),
+    var(--panel-bg-subtle);
+}
+
+/* Past */
+#timeline .slot.free.past,
+#timeline .slot.slot-past {
+  --bar: var(--border);
+  opacity: 0.55;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+#timeline .slot.free.past button {
+  border-color: var(--border);
+  background: transparent;
+}
+
+/* Admin rows */
+#timeline .slot.slot-all-free      { --bar: var(--free-border); background: var(--panel-bg); }
+#timeline .slot.slot-all-free .slot-time { color: var(--text); }
+#timeline .slot.slot-pending-approval { --bar: var(--warn-dot); background: var(--warn-bg); border-color: var(--warn-border); }
+#timeline .slot.slot-confirmed-booked { --bar: var(--accent); background: var(--accent-soft); }
+
+#timeline .slot-badge.badge-free {
+  background: var(--free);
+  color: var(--free-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--free-border) 45%, transparent);
+}
+
+/* "Now" line across the current slot */
+#timeline .slot[data-now]::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: var(--now-pct, 0%);
+  height: 2px;
+  border-radius: 2px;
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Booking drawer ────────────────────────────────────────── */
+
+.booking-drawer {
+  transition: transform 0.45s var(--ease-out), visibility 0.45s;
+}
+
+.booking-drawer-eyebrow {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.booking-slot-label {
+  font-size: 1.5rem;
+}
+
+.booking-drawer .message.success,
+.booking-drawer .message.error {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+}
+
+.booking-drawer .message.success::before {
+  content: "";
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--success-text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8.5'/%3E%3C/svg%3E") center / 70% no-repeat;
+}
+
+/* ── Motion ────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Timeline: rows cascade in when you pick a resource or a date
+     (not on every live refresh — motion.js decides). */
+  #timeline.tl-enter .slot {
+    animation: tl-row-in 0.5s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 22ms);
+  }
+
+  .tl-overview.tl-enter .tl-seg {
+    animation: tl-seg-in 0.45s var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 14ms);
+  }
+
+  /* A row whose state changed while you watched (someone booked it,
+     an admin approved it, a live update arrived) */
+  #timeline .slot.tl-changed {
+    animation: tl-changed 1.4s var(--ease-out);
+  }
+
+  /* Your own booking landing in the timeline */
+  #timeline .slot.tl-stamp {
+    animation: tl-stamp 0.9s var(--ease-spring);
+  }
+
+  #timeline .slot.tl-stamp::before {
+    animation: tl-bar-grow 0.6s var(--ease-out);
+  }
+
+  /* Jumped to from the overview strip */
+  #timeline .slot.tl-focus {
+    animation: tl-focus 1.2s var(--ease-out);
+  }
+
+  /* Drawer contents settle in just after the sheet */
+  .booking-drawer:not([hidden]) .booking-drawer-inner > * {
+    animation: tl-row-in 0.45s var(--ease-out) both;
+  }
+  .booking-drawer:not([hidden]) .booking-drawer-inner > :nth-child(2) { animation-delay: 0.05s; }
+  .booking-drawer:not([hidden]) .booking-drawer-inner > :nth-child(3) { animation-delay: 0.10s; }
+  .booking-drawer:not([hidden]) .booking-drawer-inner > :nth-child(4) { animation-delay: 0.15s; }
+
+  .booking-drawer .message.success {
+    animation: tl-pop 0.5s var(--ease-spring);
+  }
+
+  .booking-drawer .message.error {
+    animation: tl-nudge 0.4s var(--ease-out);
+  }
+
+  /* Tabs */
+  .tab-pane.is-active {
+    animation: tl-fade-up 0.32s var(--ease-out);
+  }
+
+  /* Day timeline <-> Resource board */
+  #timeline-panel:not([hidden]),
+  #board-panel:not([hidden]) {
+    animation: tl-fade-up 0.35s var(--ease-out);
+  }
+}
+
+@keyframes tl-row-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes tl-seg-in {
+  from { opacity: 0; transform: scaleY(0); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes tl-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes tl-changed {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn-dot) 70%, transparent); background-color: var(--warn-bg); }
+  60%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes tl-stamp {
+  0%   { transform: scale(0.97); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  45%  { transform: scale(1.012); }
+  100% { transform: none; box-shadow: 0 0 0 14px transparent; }
+}
+
+@keyframes tl-bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: none; }
+}
+
+@keyframes tl-focus {
+  0%, 40% { box-shadow: 0 0 0 3px var(--accent); }
+  100%    { box-shadow: 0 0 0 3px transparent; }
+}
+
+@keyframes tl-pop {
+  0%   { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes tl-nudge {
+  0%, 100% { transform: none; }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #timeline .slot,
+  .booking-drawer {
+    transition: none;
+  }
+}
+
+/* ── Small screens ─────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  /* style.css gives inputs flex: 1 here, which collapses them inside the
+     column-direction labels (and lets long resource names overflow). */
+  .controls-row label > select,
+  .controls-row label > input {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .app-toolbar .view-switch {
+    align-self: flex-start;
+  }
+
+  .panel h2 {
+    font-size: 1.125rem;
+  }
+
+  .tl-legend {
+    gap: var(--sp-2) var(--sp-4);
+  }
+
+  #timeline .slot.free:not(.past):not(.my-booked):hover {
+    transform: none;
+  }
+
+  .booking-slot-label {
+    font-size: 1.25rem;
+  }
+}

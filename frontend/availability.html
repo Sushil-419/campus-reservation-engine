@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Availability — Campus Reservation Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-links a.active {
+      font-weight: 700;
+      border-bottom: 2px solid white;
+      padding-bottom: 2px;
+    }
+    .slot-selected {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+    .slot-closed {
+      background: #f1f5f9;
+      border-left: 4px solid #94a3b8;
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+    .slot-free:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .resource-meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #f8fafc;
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+    }
+    .legend-box {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <h2>KLE Tech (Team 16) � Reservation Engine</h2>
+      <div class="nav-links">
+        <a href="resources.html" class="active">Resources</a>
+        <a href="my-bookings.html">My Bookings</a>
+        <a href="bookings-naming-me.html">Bookings Naming Me</a>
+        <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
+
+        <span class="user-info" id="user-info">Loading user...</span>
+        <a href="#" id="nav-logout">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container" id="main-content">
+    <!-- Top Card: Resource Details -->
+    <section class="card mb-2" id="resource-header-card">
+      <div class="flex-between" style="flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div class="flex gap-1" style="align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;">
+            <h1 id="resource-name" style="font-size: 1.6rem; font-weight: 700;">Loading resource...</h1>
+            <span id="resource-type-badge" class="badge badge-type"></span>
+          </div>
+          <div id="resource-meta-container" class="flex gap-1" style="flex-wrap: wrap;">
+            <span class="resource-meta-badge" id="res-building-floor">
+              <span>🏢</span> <span id="res-building-floor-text">Building &amp; Floor</span>
+            </span>
+            <span class="resource-meta-badge" id="res-department">
+              <span>🏛️</span> <span id="res-department-text">Department</span>
+            </span>
+            <span class="resource-meta-badge" id="res-capacity">
+              <span>👥</span> <span id="res-capacity-text">Capacity</span>
+            </span>
+          </div>
+        </div>
+        <div>
+          <a href="resources.html" class="btn btn-sm" style="background: #e2e8f0; color: var(--text);">← Back to Catalogue</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Date Picker & Controls Bar -->
+    <section class="card mb-2" id="date-controls-card">
+      <div class="flex-between" style="flex-wrap: wrap; gap: 1rem;">
+        <div class="flex gap-1" style="align-items: center; flex-wrap: wrap;">
+          <label for="date-picker" style="font-weight: 600; font-size: 0.9rem;">Date:</label>
+          <button type="button" class="btn btn-sm" id="btn-prev-day" style="background: #e2e8f0; color: var(--text);" title="Previous Day">&larr;</button>
+          <input type="date" id="date-picker" style="padding: 0.35rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem; font-family: inherit;">
+          <button type="button" class="btn btn-sm" id="btn-next-day" style="background: #e2e8f0; color: var(--text);" title="Next Day">&rarr;</button>
+          <button type="button" class="btn btn-sm" id="btn-today" style="background: #e2e8f0; color: var(--text);">Today</button>
+          <button type="button" class="btn btn-sm btn-primary" id="btn-tomorrow">Tomorrow</button>
+        </div>
+        <div class="flex gap-1" style="align-items: center; flex-wrap: wrap;">
+          <span class="legend-item">
+            <span class="legend-box" style="background: #dcfce7; border-left: 3px solid var(--success);"></span>
+            Free (Click to book)
+          </span>
+          <span class="legend-item" style="margin-left: 0.5rem;">
+            <span class="legend-box" style="background: #fee2e2; border-left: 3px solid var(--danger);"></span>
+            User Booked
+          </span>
+          <span class="legend-item" style="margin-left: 0.5rem;">
+            <span class="legend-box" style="background: #dbeafe; border-left: 3px solid var(--primary);"></span>
+            Timetable Slot
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Daily Timeline Schedule -->
+    <section class="card mb-2" id="timeline-card" aria-labelledby="timeline-heading">
+      <div class="flex-between mb-1">
+        <div>
+          <h3 id="timeline-heading" style="margin-bottom: 0.25rem;">Daily Schedule &amp; Availability (08:00 – 20:00)</h3>
+          <p class="text-muted text-sm" id="timeline-subtitle">Click any green free slot below to prefill and open the reservation form.</p>
+        </div>
+        <div id="slots-count-badge" class="text-sm text-muted"></div>
+      </div>
+      <div id="timeline" class="timeline">
+        <div class="text-muted text-sm" style="padding: 1.5rem 0; text-align: center;">Loading availability schedule...</div>
+      </div>
+    </section>
+
+    <!-- Booking Form Placeholder / Notice -->
+    <div id="booking-placeholder-card" class="card text-center text-muted" style="padding: 1.5rem; background: #f8fafc; border: 1px dashed var(--border);">
+      <p class="text-sm mb-1">👆 Click any <strong style="color: var(--success);">Available (Green)</strong> slot in the timeline above to open the booking form with prefilled times.</p>
+      <button type="button" class="btn btn-sm btn-primary mt-1" id="btn-open-manual-form">Or Enter Custom Booking Times</button>
+    </div>
+
+    <!-- Booking Form Card (Revealed on slot click or manual open) -->
+    <section class="card mb-2 hidden" id="booking-section" aria-labelledby="booking-heading">
+      <div class="flex-between mb-2">
+        <div>
+          <h3 id="booking-heading" style="margin-bottom: 0.25rem;">Reserve Resource</h3>
+          <p class="text-muted text-sm">Reserving for date: <strong id="booking-date-display" style="color: var(--primary);"></strong></p>
+        </div>
+        <button type="button" class="btn btn-sm" id="btn-close-form" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border);">✕ Close Form</button>
+      </div>
+
+      <!-- Policy Requirements Info Box -->
+      <div id="policy-info-box" class="card" style="background: #eff6ff; border-left: 4px solid var(--primary); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+        <div style="font-weight: 600; font-size: 0.85rem; color: var(--primary); margin-bottom: 0.25rem;">Policy Requirements:</div>
+        <div id="policy-hint-text" class="text-sm">...</div>
+      </div>
+
+      <form id="booking-form" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="start-time">Start Time (HH:MM)</label>
+            <input type="time" id="start-time" name="start" required step="1800">
+          </div>
+          <div class="form-group">
+            <label for="end-time">End Time (HH:MM)</label>
+            <input type="time" id="end-time" name="end" required step="1800">
+          </div>
+        </div>
+
+        <!-- Duration Helper -->
+        <div id="duration-helper" class="text-sm text-muted mb-1" style="margin-top: -0.5rem; font-size: 0.8rem;"></div>
+
+        <!-- Faculty / Coordinator Reference Email -->
+        <div class="form-group" id="form-group-faculty">
+          <label for="faculty-email" id="label-faculty-email">Faculty / Coordinator Email</label>
+          <input type="email" id="faculty-email" name="faculty_ref_email" placeholder="faculty@university.edu">
+          <span class="text-muted text-sm" id="faculty-helper">Faculty reference email for authorization endorsement.</span>
+        </div>
+
+        <!-- Purpose Textarea -->
+        <div class="form-group" id="form-group-purpose">
+          <label for="purpose" id="label-purpose">Purpose</label>
+          <textarea id="purpose" name="purpose" rows="3" placeholder="Describe the purpose of your reservation (min 10 characters)..."></textarea>
+          <span class="text-muted text-sm" id="purpose-helper">Explain the purpose of this reservation.</span>
+        </div>
+
+        <!-- Inline Error Banner -->
+        <div id="form-error" class="hidden mb-2 text-sm" style="background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; border-radius: var(--radius); padding: 0.75rem;"></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btn-submit">Confirm Reservation</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    // Global Application State
+    let currentUser = null;
+    let resourceId = null;
+    let currentResource = null;
+    let currentDate = null;
+
+    // Toast Notification Helper
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // HTML Escape Helper
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Date formatting helper (YYYY-MM-DD) in local time
+    function formatDateLocal(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Role display formatter
+    function formatRoleDisplay(user) {
+      if (!user) return '';
+      if (user.is_cr) {
+        return 'Student (CR)';
+      }
+      const roleMap = {
+        student: 'Student',
+        faculty: 'Faculty',
+        lab_instructor: 'Lab Instructor',
+        hod: 'HOD'
+      };
+      return roleMap[user.role] || user.role;
+    }
+
+    // Resource type label formatter
+    function formatTypeLabel(type) {
+      const typeMap = {
+        classroom: 'Classroom',
+        lab: 'Lab',
+        project_space: 'Project Space',
+        research_center: 'Research Center',
+        seminar_hall: 'Seminar Hall',
+        auditorium: 'Auditorium',
+        sports: 'Sports'
+      };
+      return typeMap[type] || type;
+    }
+
+    // Policy requirement hint based on resource type
+    function getPolicyHint(type) {
+      if (type === 'classroom') {
+        return 'Students need a coordinator email and purpose (10+ chars)';
+      } else if (type === 'lab' || type === 'project_space') {
+        return 'Students need a faculty guide email';
+      } else if (type === 'research_center') {
+        return 'Students need a faculty guide email. Lab instructors cannot book.';
+      } else if (type === 'seminar_hall' || type === 'auditorium') {
+        return 'Students need a coordinator email and purpose (10+ chars). Lab instructors cannot book auditoriums.';
+      } else if (type === 'sports') {
+        return 'Open to all — no extra requirements';
+      }
+      return 'Please verify policy restrictions before reserving.';
+    }
+
+    // Authentication Check on Page Load
+    async function checkAuth() {
+      try {
+        const response = await fetch('/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.status === 401 || !response.ok) {
+          window.location.href = 'index.html';
+          return null;
+        }
+
+        const user = await response.json();
+        currentUser = user;
+
+        // Render user details in navbar
+        const userInfoEl = document.getElementById('user-info');
+        if (userInfoEl) {
+          userInfoEl.textContent = `${user.name} (${formatRoleDisplay(user)})`;
+        }
+
+        // Show admin link if role is HOD
+        if (user.role === 'hod') {
+          const adminLink = document.getElementById('nav-admin');
+          if (adminLink) {
+            adminLink.classList.remove('hidden');
+          }
+        }
+
+        return user;
+      } catch (err) {
+        console.error('Authentication verification error:', err);
+        window.location.href = 'index.html';
+        return null;
+      }
+    }
+
+    // Logout Handler
+    async function handleLogout(e) {
+      if (e) e.preventDefault();
+      try {
+        const response = await fetch('/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          window.location.href = 'index.html';
+        } else {
+          showToast('Failed to log out cleanly. Redirecting...', 'error');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 800);
+        }
+      } catch (err) {
+        console.error('Logout error:', err);
+        window.location.href = 'index.html';
+      }
+    }
+
+    // Fetch Resource Details (GET /resources/{id})
+    async function loadResourceDetails(id) {
+      try {
+        const res = await fetch(`/resources/${id}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (res.status === 401) {
+          window.location.href = 'index.html';
+          return null;
+        }
+
+        if (res.status === 404) {
+          renderErrorState('Resource Not Found', `The requested resource #${escapeHtml(id)} does not exist or has been removed.`);
+          return null;
+        }
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        currentResource = data;
+        renderResourceHeader(data);
+        configureFormForResourceType(data.type);
+        return data;
+      } catch (err) {
+        console.error('Failed to load resource details:', err);
+        renderErrorState('Error Loading Resource', 'Unable to fetch resource information. Please return to the catalogue.');
+        return null;
+      }
+    }
+
+    // Render Resource Header info
+    function renderResourceHeader(r) {
+      document.title = `${r.name} Availability — Campus Reservation Engine`;
+
+      const nameEl = document.getElementById('resource-name');
+      if (nameEl) nameEl.textContent = r.name;
+
+      const badgeEl = document.getElementById('resource-type-badge');
+      if (badgeEl) {
+        badgeEl.textContent = formatTypeLabel(r.type);
+      }
+
+      const bfEl = document.getElementById('res-building-floor-text');
+      if (bfEl) {
+        bfEl.textContent = `${r.building} • Floor ${r.floor}`;
+      }
+
+      const deptEl = document.getElementById('res-department-text');
+      if (deptEl) {
+        deptEl.textContent = r.department ? `Dept: ${r.department}` : 'All Departments';
+      }
+
+      const capEl = document.getElementById('res-capacity-text');
+      if (capEl) {
+        capEl.textContent = r.capacity ? `Capacity: ${r.capacity}` : 'General Capacity';
+      }
+    }
+
+    // Render Clean Error State
+    function renderErrorState(title, message) {
+      const main = document.getElementById('main-content');
+      if (!main) return;
+      main.innerHTML = `
+        <div class="card empty">
+          <div class="empty-icon">⚠️</div>
+          <h3>${escapeHtml(title)}</h3>
+          <p class="text-muted text-sm mb-2">${escapeHtml(message)}</p>
+          <a href="resources.html" class="btn btn-primary">Back to Resource Catalogue</a>
+        </div>
+      `;
+    }
+
+    // Configure form fields based on resource type & policy requirements
+    function configureFormForResourceType(type) {
+      const hintTextEl = document.getElementById('policy-hint-text');
+      if (hintTextEl) {
+        hintTextEl.textContent = getPolicyHint(type);
+      }
+
+      const facultyGroup = document.getElementById('form-group-faculty');
+      const facultyLabel = document.getElementById('label-faculty-email');
+      const facultyHelper = document.getElementById('faculty-helper');
+      const facultyInput = document.getElementById('faculty-email');
+
+      const purposeGroup = document.getElementById('form-group-purpose');
+      const purposeInput = document.getElementById('purpose');
+      const purposeHelper = document.getElementById('purpose-helper');
+
+      const isStudentOrCr = currentUser && (currentUser.role === 'student' || currentUser.is_cr);
+
+      // Determine fields visibility based on resource type
+      if (type === 'classroom') {
+        facultyGroup.classList.remove('hidden');
+        facultyLabel.textContent = 'Faculty Coordinator Email';
+        facultyHelper.textContent = 'Required for student bookings. Must be a faculty or HOD email.';
+        if (isStudentOrCr) facultyInput.required = true;
+
+        purposeGroup.classList.remove('hidden');
+        purposeHelper.textContent = 'Required for student bookings (at least 10 characters).';
+        if (isStudentOrCr) {
+          purposeInput.required = true;
+          purposeInput.minLength = 10;
+        }
+      } else if (type === 'seminar_hall' || type === 'auditorium') {
+        facultyGroup.classList.remove('hidden');
+        facultyLabel.textContent = 'Faculty Coordinator Email';
+        facultyHelper.textContent = 'Required for student bookings. Must be a faculty or HOD email.';
+        if (isStudentOrCr) facultyInput.required = true;
+
+        purposeGroup.classList.remove('hidden');
+        purposeHelper.textContent = 'Required for student bookings (at least 10 characters).';
+        if (isStudentOrCr) {
+          purposeInput.required = true;
+          purposeInput.minLength = 10;
+        }
+      } else if (type === 'lab' || type === 'project_space' || type === 'research_center') {
+        facultyGroup.classList.remove('hidden');
+        facultyLabel.textContent = 'Faculty Guide Email';
+        facultyHelper.textContent = 'Required for student bookings. Must be a faculty or HOD email.';
+        if (isStudentOrCr) facultyInput.required = true;
+
+        // Purpose not required per policy for labs/project spaces
+        purposeGroup.classList.add('hidden');
+        purposeInput.required = false;
+        purposeInput.minLength = 0;
+      } else if (type === 'sports') {
+        // Sports is open to all — no extra requirements
+        facultyGroup.classList.add('hidden');
+        facultyInput.required = false;
+
+        purposeGroup.classList.add('hidden');
+        purposeInput.required = false;
+        purposeInput.minLength = 0;
+      }
+
+      // Role permission check for lab instructor
+      if (currentUser && currentUser.role === 'lab_instructor') {
+        if (type === 'research_center' || type === 'auditorium') {
+          const submitBtn = document.getElementById('btn-submit');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Booking Not Permitted for Lab Instructors';
+          }
+          showInlineError('Lab instructors cannot book auditoriums or research centers under campus policy.');
+        }
+      }
+    }
+
+    // Load Daily Schedule: booked slots & free slots
+    async function loadDaySchedule(dateStr) {
+      if (!resourceId) return;
+      currentDate = dateStr;
+
+      const dateDisplay = document.getElementById('booking-date-display');
+      if (dateDisplay) dateDisplay.textContent = dateStr;
+
+      const timelineEl = document.getElementById('timeline');
+      if (timelineEl) {
+        timelineEl.innerHTML = '<div class="text-muted text-sm" style="padding: 1.5rem 0; text-align: center;">Loading availability schedule...</div>';
+      }
+
+      try {
+        const [dayRes, freeRes] = await Promise.all([
+          fetch(`/resources/${resourceId}/day?date=${dateStr}`, {
+            method: 'GET',
+            credentials: 'include'
+          }),
+          fetch(`/resources/${resourceId}/free-slots?date=${dateStr}`, {
+            method: 'GET',
+            credentials: 'include'
+          })
+        ]);
+
+        if (dayRes.status === 401 || freeRes.status === 401) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        if (!dayRes.ok) {
+          throw new Error(`Failed to load booked slots: HTTP ${dayRes.status}`);
+        }
+        if (!freeRes.ok) {
+          throw new Error(`Failed to load free slots: HTTP ${freeRes.status}`);
+        }
+
+        const bookedSlots = await dayRes.json();
+        const freeSlots = await freeRes.json();
+
+        renderTimeline(bookedSlots, freeSlots, dateStr);
+      } catch (err) {
+        console.error('Error loading schedule:', err);
+        showToast('Unable to load availability for this date', 'error');
+        if (timelineEl) {
+          timelineEl.innerHTML = `
+            <div class="text-sm" style="color: var(--danger); padding: 1.5rem 0; text-align: center;">
+              Failed to load schedule for ${escapeHtml(dateStr)}. Please try again or select another date.
+            </div>
+          `;
+        }
+      }
+    }
+
+    // Render Timeline Visualization (08:00 – 20:00 vertical list)
+    function renderTimeline(bookedSlots, freeSlots, dateStr) {
+      const timelineEl = document.getElementById('timeline');
+      if (!timelineEl) return;
+      timelineEl.innerHTML = '';
+
+      const slots = [];
+
+      // 1. Ingest Free Slots
+      if (Array.isArray(freeSlots)) {
+        freeSlots.forEach(f => {
+          if (f && f.start && f.end) {
+            slots.push({
+              start: f.start,
+              end: f.end,
+              type: 'free',
+              label: 'Available (Click to book)',
+              isClickable: true,
+              data: f
+            });
+          }
+        });
+      }
+
+      // 2. Ingest Booked & Timetable Slots
+      if (Array.isArray(bookedSlots)) {
+        bookedSlots.forEach(b => {
+          if (b && b.start && b.end) {
+            const isTimetable = b.source === 'timetable';
+            let label = '';
+            if (isTimetable) {
+              label = b.course ? b.course : (b.purpose ? b.purpose : 'Timetable Class');
+            } else {
+              label = b.purpose ? b.purpose : 'User Booking';
+            }
+            slots.push({
+              start: b.start,
+              end: b.end,
+              type: isTimetable ? 'timetable' : 'booked',
+              label: label,
+              isClickable: false,
+              data: b
+            });
+          }
+        });
+      }
+
+      // 3. Sort Chronologically
+      slots.sort((a, b) => a.start.localeCompare(b.start));
+
+      // 4. Fill boundary to cover full 08:00 – 20:00 range
+      if (slots.length > 0) {
+        // If first slot starts after 08:00
+        if (slots[0].start > '08:00') {
+          slots.unshift({
+            start: '08:00',
+            end: slots[0].start,
+            type: 'closed',
+            label: 'Outside operating hours',
+            isClickable: false
+          });
+        }
+
+        // If last slot ends before 20:00
+        const lastEnd = slots[slots.length - 1].end;
+        if (lastEnd < '20:00') {
+          slots.push({
+            start: lastEnd,
+            end: '20:00',
+            type: 'closed',
+            label: 'Closed (Outside operating hours)',
+            isClickable: false
+          });
+        }
+      } else {
+        // Entire day has no recorded schedule
+        slots.push({
+          start: '08:00',
+          end: '20:00',
+          type: 'closed',
+          label: 'No operating hours or bookings scheduled',
+          isClickable: false
+        });
+      }
+
+      // Update count badge
+      const freeSlotsCount = slots.filter(s => s.type === 'free').length;
+      const countBadge = document.getElementById('slots-count-badge');
+      if (countBadge) {
+        countBadge.textContent = `${freeSlotsCount} free slot${freeSlotsCount === 1 ? '' : 's'} available`;
+      }
+
+      // 5. Build and Append DOM Elements
+      slots.forEach(s => {
+        const slotDiv = document.createElement('div');
+
+        if (s.type === 'free') {
+          slotDiv.className = 'slot slot-free';
+          slotDiv.setAttribute('role', 'button');
+          slotDiv.setAttribute('tabindex', '0');
+          slotDiv.setAttribute('data-start', s.start);
+          slotDiv.setAttribute('data-end', s.end);
+          slotDiv.setAttribute('aria-label', `Available slot ${s.start} to ${s.end}. Click to book.`);
+          slotDiv.title = `Click to book slot: ${s.start} – ${s.end}`;
+
+          const clickHandler = () => {
+            // Deselect previous
+            document.querySelectorAll('.slot-free').forEach(el => el.classList.remove('slot-selected'));
+            slotDiv.classList.add('slot-selected');
+            openBookingForm(s.start, s.end, dateStr);
+          };
+
+          slotDiv.addEventListener('click', clickHandler);
+          slotDiv.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              clickHandler();
+            }
+          });
+        } else if (s.type === 'timetable') {
+          slotDiv.className = 'slot slot-timetable';
+          slotDiv.setAttribute('aria-label', `Timetable slot ${s.start} to ${s.end}: ${s.label}`);
+        } else if (s.type === 'booked') {
+          slotDiv.className = 'slot slot-booked';
+          slotDiv.setAttribute('aria-label', `Booked slot ${s.start} to ${s.end}: ${s.label}`);
+        } else {
+          slotDiv.className = 'slot slot-closed';
+          slotDiv.setAttribute('aria-label', `Closed slot ${s.start} to ${s.end}: ${s.label}`);
+        }
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'slot-time';
+        timeSpan.textContent = `${s.start} – ${s.end}`;
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'slot-label';
+        labelSpan.textContent = s.label;
+
+        slotDiv.appendChild(timeSpan);
+        slotDiv.appendChild(labelSpan);
+
+        timelineEl.appendChild(slotDiv);
+      });
+    }
+
+    // Open Booking Form and prefill values
+    function openBookingForm(start, end, dateStr) {
+      const placeholder = document.getElementById('booking-placeholder-card');
+      const section = document.getElementById('booking-section');
+
+      if (placeholder) placeholder.classList.add('hidden');
+      if (section) section.classList.remove('hidden');
+
+      const startInput = document.getElementById('start-time');
+      const endInput = document.getElementById('end-time');
+      const dateDisplay = document.getElementById('booking-date-display');
+
+      if (startInput && start) startInput.value = start;
+      if (endInput && end) endInput.value = end;
+      if (dateDisplay && dateStr) dateDisplay.textContent = dateStr;
+
+      updateDurationDisplay();
+      hideInlineError();
+
+      // Scroll form smoothly into view
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      if (startInput) {
+        startInput.focus();
+      }
+    }
+
+    // Close Booking Form
+    function closeBookingForm() {
+      const placeholder = document.getElementById('booking-placeholder-card');
+      const section = document.getElementById('booking-section');
+
+      if (placeholder) placeholder.classList.remove('hidden');
+      if (section) section.classList.add('hidden');
+
+      document.querySelectorAll('.slot-free').forEach(el => el.classList.remove('slot-selected'));
+      hideInlineError();
+    }
+
+    // Live Duration Helper Calculator
+    function updateDurationDisplay() {
+      const startVal = document.getElementById('start-time').value;
+      const endVal = document.getElementById('end-time').value;
+      const helper = document.getElementById('duration-helper');
+      if (!helper) return;
+
+      if (!startVal || !endVal) {
+        helper.textContent = '';
+        return;
+      }
+
+      const [sh, sm] = startVal.split(':').map(Number);
+      const [eh, em] = endVal.split(':').map(Number);
+      const startMins = sh * 60 + sm;
+      const endMins = eh * 60 + em;
+      const diff = endMins - startMins;
+
+      if (diff <= 0) {
+        helper.innerHTML = `<span style="color: var(--danger); font-weight: 500;">⚠️ End time must be strictly after start time</span>`;
+      } else {
+        const hours = Math.floor(diff / 60);
+        const mins = diff % 60;
+        const durText = `${hours > 0 ? hours + ' hr ' : ''}${mins > 0 ? mins + ' min' : ''}`;
+        helper.innerHTML = `Selected duration: <strong>${durText.trim()}</strong> (${diff} minutes)`;
+      }
+    }
+
+    // Show/Hide Inline Form Error
+    function showInlineError(msg) {
+      const errBox = document.getElementById('form-error');
+      if (!errBox) return;
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    }
+
+    function hideInlineError() {
+      const errBox = document.getElementById('form-error');
+      if (!errBox) return;
+      errBox.textContent = '';
+      errBox.classList.add('hidden');
+    }
+
+    // Handle Booking Form Submission
+    async function handleBookingSubmit(e) {
+      if (e) e.preventDefault();
+      hideInlineError();
+
+      const submitBtn = document.getElementById('btn-submit');
+      const dateVal = document.getElementById('date-picker').value;
+      const startVal = document.getElementById('start-time').value;
+      const endVal = document.getElementById('end-time').value;
+      const facultyInput = document.getElementById('faculty-email');
+      const purposeInput = document.getElementById('purpose');
+
+      const facultyGroup = document.getElementById('form-group-faculty');
+      const purposeGroup = document.getElementById('form-group-purpose');
+
+      // 1. Basic validation
+      if (!dateVal) {
+        showInlineError('Please select a reservation date.');
+        showToast('Please select a reservation date', 'error');
+        return;
+      }
+      if (!startVal || !endVal) {
+        showInlineError('Please select both start and end times.');
+        showToast('Please specify start and end times', 'error');
+        return;
+      }
+      if (startVal >= endVal) {
+        showInlineError('Start time must be before end time.');
+        showToast('Start time must be before end time', 'error');
+        return;
+      }
+
+      // Check 30-min grid
+      const [sh, sm] = startVal.split(':').map(Number);
+      const [eh, em] = endVal.split(':').map(Number);
+      if (sm % 30 !== 0 || em % 30 !== 0) {
+        showInlineError('Times must be on a 30-minute grid (e.g. 09:00, 09:30, 10:00).');
+        showToast('Times must be on a 30-minute grid', 'error');
+        return;
+      }
+
+      // Extract optional or required fields
+      let facultyEmailVal = null;
+      if (facultyGroup && !facultyGroup.classList.contains('hidden') && facultyInput) {
+        facultyEmailVal = facultyInput.value.trim() || null;
+      }
+
+      let purposeVal = null;
+      if (purposeGroup && !purposeGroup.classList.contains('hidden') && purposeInput) {
+        purposeVal = purposeInput.value.trim() || null;
+      }
+
+      // Client-side validation for students
+      const isStudent = currentUser && currentUser.role === 'student';
+      if (isStudent) {
+        if (facultyGroup && !facultyGroup.classList.contains('hidden') && !facultyEmailVal) {
+          showInlineError('Faculty / Coordinator reference email is required for students.');
+          showToast('Faculty reference email is required', 'error');
+          return;
+        }
+        if (purposeGroup && !purposeGroup.classList.contains('hidden')) {
+          if (!purposeVal || purposeVal.length < 10) {
+            showInlineError('Purpose must be at least 10 characters for this resource type.');
+            showToast('Purpose must be at least 10 characters', 'error');
+            return;
+          }
+        }
+      }
+
+      const payload = {
+        resource_id: parseInt(resourceId, 10),
+        date: dateVal,
+        start: startVal,
+        end: endVal,
+        purpose: purposeVal,
+        faculty_ref_email: facultyEmailVal
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting reservation...';
+
+      try {
+        const response = await fetch('/bookings/', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        // 201: Created successfully
+        if (response.status === 201) {
+          showToast('Booking confirmed successfully!', 'success');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+          return;
+        }
+
+        // 409: Exclusion conflict (slot taken)
+        if (response.status === 409) {
+          showToast('Slot taken', 'error');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+          return;
+        }
+
+        // 401: Unauthorized -> redirect to login
+        if (response.status === 401) {
+          showToast('Session expired. Redirecting to login...', 'error');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 800);
+          return;
+        }
+
+        // 403: Forbidden by policy or quota
+        if (response.status === 403) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.detail || 'Forbidden: booking policy violation or quota exceeded';
+          showToast(errMsg, 'error');
+          showInlineError(errMsg);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Confirm Reservation';
+          return;
+        }
+
+        // 400: Bad request / policy constraint violation
+        if (response.status === 400) {
+          const errData = await response.json().catch(() => ({}));
+          let errMsg = 'Invalid booking request';
+          if (typeof errData.detail === 'string') {
+            errMsg = errData.detail;
+          } else if (Array.isArray(errData.detail)) {
+            errMsg = errData.detail.map(d => d.msg || d.detail || JSON.stringify(d)).join('; ');
+          }
+          showToast(errMsg, 'error');
+          showInlineError(errMsg);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Confirm Reservation';
+          return;
+        }
+
+        // Other unexpected HTTP codes
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.detail || `Reservation failed with status ${response.status}`;
+        showToast(errMsg, 'error');
+        showInlineError(errMsg);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirm Reservation';
+      } catch (err) {
+        console.error('Booking submission error:', err);
+        showToast('Network error while processing booking', 'error');
+        showInlineError('A network error occurred while contacting the server.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirm Reservation';
+      }
+    }
+
+    // Shift Date picker by +/- days
+    function shiftDate(daysDelta) {
+      const picker = document.getElementById('date-picker');
+      if (!picker) return;
+
+      const current = new Date(picker.value || new Date());
+      current.setDate(current.getDate() + daysDelta);
+
+      // Prevent navigating past yesterday
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const targetDateStr = formatDateLocal(current);
+      picker.value = targetDateStr;
+      loadDaySchedule(targetDateStr);
+    }
+
+    // Page Initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Auth check
+      const user = await checkAuth();
+      if (!user) return; // redirected to index.html
+
+      // 2. Setup Logout
+      const logoutBtn = document.getElementById('nav-logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+      }
+
+      // 3. Extract Resource ID from URL query param ?id=...
+      const urlParams = new URLSearchParams(window.location.search);
+      resourceId = urlParams.get('id');
+
+      if (!resourceId) {
+        renderErrorState('No Resource Specified', 'Please select a resource from the catalogue to view its availability.');
+        return;
+      }
+
+      // 4. Fetch Resource Details
+      const resource = await loadResourceDetails(resourceId);
+      if (!resource) return;
+
+      // 5. Initialize Date Picker (default: tomorrow's date)
+      const datePicker = document.getElementById('date-picker');
+      const now = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
+
+      const todayStr = formatDateLocal(now);
+      const tomorrowStr = formatDateLocal(tomorrow);
+
+      datePicker.min = todayStr;
+      datePicker.value = tomorrowStr;
+      currentDate = tomorrowStr;
+
+      // 6. Setup Date Picker event listeners
+      datePicker.addEventListener('change', () => {
+        if (datePicker.value) {
+          loadDaySchedule(datePicker.value);
+        }
+      });
+
+      const btnToday = document.getElementById('btn-today');
+      if (btnToday) {
+        btnToday.addEventListener('click', () => {
+          datePicker.value = todayStr;
+          loadDaySchedule(todayStr);
+        });
+      }
+
+      const btnTomorrow = document.getElementById('btn-tomorrow');
+      if (btnTomorrow) {
+        btnTomorrow.addEventListener('click', () => {
+          datePicker.value = tomorrowStr;
+          loadDaySchedule(tomorrowStr);
+        });
+      }
+
+      const btnPrev = document.getElementById('btn-prev-day');
+      if (btnPrev) {
+        btnPrev.addEventListener('click', () => shiftDate(-1));
+      }
+
+      const btnNext = document.getElementById('btn-next-day');
+      if (btnNext) {
+        btnNext.addEventListener('click', () => shiftDate(1));
+      }
+
+      // 7. Setup Form open/close and live duration helpers
+      const btnOpenManual = document.getElementById('btn-open-manual-form');
+      if (btnOpenManual) {
+        btnOpenManual.addEventListener('click', () => {
+          const sInput = document.getElementById('start-time');
+          const eInput = document.getElementById('end-time');
+          if (!sInput.value) sInput.value = '09:00';
+          if (!eInput.value) eInput.value = '10:00';
+          openBookingForm(sInput.value, eInput.value, currentDate);
+        });
+      }
+
+      const btnCloseForm = document.getElementById('btn-close-form');
+      if (btnCloseForm) {
+        btnCloseForm.addEventListener('click', closeBookingForm);
+      }
+
+      const startTimeInput = document.getElementById('start-time');
+      const endTimeInput = document.getElementById('end-time');
+      if (startTimeInput) startTimeInput.addEventListener('input', updateDurationDisplay);
+      if (endTimeInput) endTimeInput.addEventListener('input', updateDurationDisplay);
+
+      // 8. Setup Booking Form submit event
+      const bookingForm = document.getElementById('booking-form');
+      if (bookingForm) {
+        bookingForm.addEventListener('submit', handleBookingSubmit);
+      }
+
+      // 9. Initial schedule load for tomorrow's date
+      await loadDaySchedule(tomorrowStr);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: resvdb_dev_pw
+      POSTGRES_DB: resvdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - resvdb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d resvdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8050:8050"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:resvdb_dev_pw@db:5432/resvdb
+      BASE_URL: http://127.0.0.1:8050
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-ekbotesushilendr0@gmail.com}
+      MAX_ACTIVE_RESERVATIONS_PER_USER: ${MAX_ACTIVE_RESERVATIONS_PER_USER:-5}
+      MAX_BOOKING_DURATION_HOURS: ${MAX_BOOKING_DURATION_HOURS:-8}
+      DEFAULT_RESOURCE_TIMEZONE: ${DEFAULT_RESOURCE_TIMEZONE:-Asia/Kolkata}
+      MAX_WAITLIST_ENTRIES_PER_USER: ${MAX_WAITLIST_ENTRIES_PER_USER:-3}
+      JOBS_ENABLED: ${JOBS_ENABLED:-true}
+      JOB_INTERVAL_SECONDS: ${JOB_INTERVAL_SECONDS:-60}
+      REALTIME_ENABLED: ${REALTIME_ENABLED:-true}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+volumes:
+  resvdb_data:

@@ -1,0 +1,16 @@
+weekday,start,end,building,room,course,faculty_email
+1,09:00,10:00,Main,Main 101,CS201 Data Structures,faculty01@example.edu
+1,10:00,11:00,Main,Main 101,CS202 Algorithms,faculty02@example.edu
+1,11:00,12:00,Main,Main 102,CS203 OS,faculty01@example.edu
+1,14:00,16:00,CLITE,CLITE 101,CS204 Lab,faculty03@example.edu
+2,09:00,10:00,Main,Main 101,CS201 Data Structures,faculty01@example.edu
+2,10:00,11:00,Main,Main 103,MA201 Linear Algebra,faculty02@example.edu
+2,14:00,16:00,CLITE,CLITE 102,CS205 Networks Lab,faculty03@example.edu
+3,09:00,10:00,Main,Main 101,CS202 Algorithms,faculty02@example.edu
+3,10:00,11:00,Main,Main 102,CS203 OS,faculty01@example.edu
+3,11:00,12:00,Main,Main 104,CS206 DBMS,faculty03@example.edu
+4,09:00,10:00,R H Kulkarni,R H Kulkarni 101,EC201 Signals,faculty01@example.edu
+4,10:00,11:00,R H Kulkarni,R H Kulkarni 102,EC202 Digital,faculty02@example.edu
+4,14:00,16:00,CLITE,CLITE 103,CS207 Web Lab,faculty01@example.edu
+5,09:00,10:00,R H Kulkarni,R H Kulkarni 101,EC201 Signals,faculty01@example.edu
+5,10:00,12:00,CLITE,CLITE 104,CS208 ML Lab,faculty03@example.edu

@@ -1,0 +1,2115 @@
+/* ================================================================
+   Reservation & Scheduling Engine — design system v2
+   style.css — main app styles (auth pages also @link this)
+   ================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Design tokens: light ──────────────────────────────────── */
+
+:root {
+  /* Spacing scale */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* Type scale */
+  --fs-xs:   0.6875rem;  /* 11px */
+  --fs-sm:   0.8125rem;  /* 13px */
+  --fs-base: 0.875rem;   /* 14px */
+  --fs-md:   1rem;       /* 16px */
+  --fs-lg:   1.25rem;    /* 20px */
+  --fs-xl:   1.5rem;     /* 24px */
+
+  /* Display face for headings (body text stays Inter) */
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-sm:    0 1px 3px rgba(16,17,20,.06), 0 1px 2px rgba(16,17,20,.04);
+  --shadow-md:    0 4px 16px rgba(16,17,20,.08), 0 1px 4px rgba(16,17,20,.05);
+  --shadow-lg:    0 12px 40px rgba(16,17,20,.12), 0 4px 12px rgba(16,17,20,.07);
+  --shadow-modal: 0 24px 64px rgba(16,17,20,.18);
+
+  /* Palette — light */
+  --bg:              #f0f2f6;
+  --panel-bg:        #ffffff;
+  --panel-bg-subtle: #f7f8fa;
+  --border:          #e4e6eb;
+  --border-strong:   #cdd1db;
+  --text:            #1a1c22;
+  --muted:           #6b7280;
+  --muted-2:         #9ca3af;
+
+  --accent:          #3b6ef6;
+  --accent-hover:    #2e5adf;
+  --accent-soft:     #eaf0fe;
+  --accent-contrast: #ffffff;
+
+  --free:            #edf8f1;
+  --free-border:     #22c55e;
+  --free-text:       #15803d;
+  --booked:          #f1f3f6;
+  --booked-border:   #cdd1db;
+
+  --danger:          #ef4444;
+  --danger-hover:    #dc2626;
+  --error-bg:        #fef2f2;
+  --error-text:      #b91c1c;
+  --success-bg:      #f0fdf4;
+  --success-text:    #15803d;
+
+  /* Warning / amber (used for pending badge) */
+  --warn-bg:         #fffbeb;
+  --warn-border:     #fde68a;
+  --warn-text:       #92400e;
+  --warn-dot:        #f59e0b;
+}
+
+/* ── Design tokens: dark (Jet Black) ───────────────────────── */
+
+:root[data-theme="dark"] {
+  /* True jet black surfaces (0% blue saturation) */
+  --bg:              #000000;
+  --panel-bg:        #09090b;
+  --panel-bg-subtle: #121214;
+  --border:          #1f1f23;
+  --border-strong:   #2d2d32;
+  --text:            #f4f4f5;
+  --muted:           #8e8e93;
+  --muted-2:         #56565c;
+
+  /* Crisp monochrome / clean accent tones */
+  --accent:          #3b82f6;
+  --accent-hover:    #2563eb;
+  --accent-soft:     #18181b;
+  --accent-contrast: #ffffff;
+
+  --free:            #051508;
+  --free-border:     #22c55e;
+  --free-text:       #4ade80;
+  --booked:          #121214;
+  --booked-border:   #242428;
+
+  --danger:          #ef4444;
+  --danger-hover:    #f87171;
+  --error-bg:        #180808;
+  --error-text:      #fca5a5;
+  --success-bg:      #051508;
+  --success-text:    #4ade80;
+
+  /* Warning / amber — dark */
+  --warn-bg:         #181206;
+  --warn-border:     #3e2606;
+  --warn-text:       #fbbf24;
+  --warn-dot:        #f59e0b;
+
+  --shadow-sm:    0 1px 2px rgba(0,0,0,.70);
+  --shadow-md:    0 4px 16px rgba(0,0,0,.85);
+  --shadow-lg:    0 12px 36px rgba(0,0,0,.95);
+  --shadow-modal: 0 24px 64px rgba(0,0,0,.98);
+}
+
+/* ── Base reset ────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+
+html:has(:root[data-theme="dark"]) {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  /* Proper vertical padding instead of a fixed height */
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  /* Slightly stronger shadow to lift nav above page content */
+  box-shadow: 0 1px 0 var(--border), 0 2px 12px rgba(16,17,20,.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+/* ── Brand / logo ──────────────────────────────────────────── */
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.brand-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  flex-shrink: 0;
+}
+
+.brand-mark svg {
+  display: block;
+}
+
+.brand-mark-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto;
+  border-radius: var(--radius-lg);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* ── Account bar (right side) ──────────────────────────────── */
+
+.account-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+}
+
+/* ── Account menu (initial avatar + dropdown) ─────────────── */
+
+.account-menu {
+  position: relative;
+}
+
+.user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.user-avatar:hover {
+  background: var(--accent-hover);
+  box-shadow: none;
+}
+
+.user-avatar:focus-visible,
+.user-avatar[aria-expanded="true"] {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--panel-bg), 0 0 0 4px var(--accent);
+}
+
+.user-avatar:active {
+  transform: scale(0.94);
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  z-index: 25;
+  min-width: 14rem;
+  max-width: calc(100vw - 2rem);
+  padding: var(--sp-2);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.account-dropdown[hidden] {
+  display: none;
+}
+
+.account-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  margin-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+.account-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-email {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Log out: full-width menu item inside the dropdown */
+.nav-logout-btn {
+  width: 100%;
+  height: 2.125rem;
+  padding: 0 var(--sp-3);
+  justify-content: flex-start;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-logout-btn:hover {
+  background: var(--error-bg);
+  color: var(--error-text);
+  box-shadow: none;
+}
+
+/* ── Theme toggle ──────────────────────────────────────────── */
+
+.theme-toggle {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--panel-bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.theme-toggle svg {
+  display: block;
+}
+
+.theme-toggle:hover {
+  background: var(--booked);
+  border-color: var(--border-strong);
+  box-shadow: none;
+}
+
+.theme-toggle:active {
+  transform: scale(0.92);
+}
+
+:root[data-theme="dark"] .theme-toggle {
+  background: #1c1c1f;
+  border-color: transparent;
+}
+
+:root[data-theme="dark"] .theme-toggle:hover {
+  background: #26262a;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+button {
+  height: 2.25rem;
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 2px 8px rgba(59,110,246,.22);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary (ghost) button */
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+button.secondary:hover {
+  background: var(--booked);
+  box-shadow: none;
+}
+
+/* Rules like `button { display: inline-flex }` beat the browser's own
+   [hidden] rule, so anything toggled with the hidden attribute (drawer
+   buttons, the admin pending-users badge, ...) would still show. One global
+   rule fixes them all. The booking drawer keeps its slide animation because
+   its own `.booking-drawer[hidden]` rule is more specific. */
+[hidden] {
+  display: none !important;
+}
+
+/* Cancel booking panel button — icon style inside drawer */
+#cancel-booking-panel-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  min-width: 0;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+#cancel-booking-panel-btn:hover {
+  background: var(--booked);
+  color: var(--text);
+  box-shadow: none;
+}
+
+/* ── Main layout ───────────────────────────────────────────── */
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-6) 7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.panel h2 {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-2);
+}
+
+.timeline-tz {
+  margin-left: var(--sp-2);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── App toolbar ───────────────────────────────────────────── */
+
+.app-toolbar {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4) var(--sp-6);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  align-items: flex-end;
+  flex: 1;
+}
+
+.controls-row label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin: var(--sp-2) 0 0;
+}
+
+/* ── Form controls ─────────────────────────────────────────── */
+
+select,
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  height: 2.375rem;
+  padding: 0 var(--sp-3);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  min-width: 11rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: light;
+}
+
+/* In dark mode, tell the browser to render native date-picker controls
+   (calendar icon, spin buttons, etc.) in light colours so they stay visible */
+:root[data-theme="dark"] input[type="date"],
+:root[data-theme="dark"] input[type="time"],
+:root[data-theme="dark"] input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
+/* Invert the native calendar icon so it's visible on dark backgrounds */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+:root[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+
+
+/* Custom chevron for selects */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--sp-3) center;
+  padding-right: 2.25rem;
+  cursor: pointer;
+}
+
+select:focus,
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 1rem;
+  height: 1rem;
+}
+
+.checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: var(--sp-2) !important;
+  text-transform: none !important;
+  font-weight: 400 !important;
+  color: var(--text) !important;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.stacked-form {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp-4);
+  max-width: 22rem;
+}
+
+.stacked-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.stacked-form .field label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stacked-form .field input,
+.stacked-form .field select {
+  min-width: 0;
+  width: 100%;
+}
+
+.stacked-form > button {
+  align-self: flex-start;
+}
+
+/* ── Hero timeline panel ───────────────────────────────────── */
+
+.hero-panel {
+  /* Extra visual weight for the primary panel */
+}
+
+/* ── Day timeline ──────────────────────────────────────────── */
+
+#timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  border-left: 3px solid var(--border);
+  font-size: var(--fs-base);
+  background: var(--panel-bg-subtle);
+  transition: box-shadow 0.15s, transform 0.12s, border-color 0.15s;
+}
+
+.slot.free {
+  border-left-color: var(--free-border);
+  background: var(--free);
+  border-color: var(--border);
+}
+
+.slot.free:hover {
+  box-shadow: 0 2px 12px rgba(34,197,94,.14);
+  transform: translateY(-1px);
+  border-color: var(--free-border);
+}
+
+.slot.free span:first-child {
+  font-weight: 600;
+  color: var(--free-text);
+}
+
+.slot.booked {
+  color: var(--muted);
+  border-left-color: var(--booked-border);
+}
+
+.slot .booked-label {
+  font-size: var(--fs-sm);
+  color: var(--muted-2);
+}
+
+/* Book button inside free slot */
+.slot.free button {
+  height: 2rem;
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background: var(--free-border);
+  color: #fff;
+  border: none;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.slot.free button:hover {
+  background: var(--free-text);
+  box-shadow: 0 2px 10px rgba(34,197,94,.28);
+  transform: none;
+}
+
+/* Past free slots — disabled and greyed out */
+.slot.free.past {
+  border-left-color: var(--border-strong);
+  background: var(--panel-bg-subtle);
+  border-color: var(--border);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.slot.free.past:hover {
+  box-shadow: none;
+  transform: none;
+  border-color: var(--border);
+}
+
+.slot.free.past span:first-child {
+  font-weight: 500;
+  color: var(--muted-2);
+}
+
+.slot.free.past button,
+.slot.free.past button:hover,
+.slot.free.past button:disabled {
+  background: var(--booked);
+  color: var(--muted-2);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+/* Slots booked by current user */
+.slot.free.my-booked {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.slot.free.my-booked button,
+.slot.free.my-booked button:hover,
+.slot.free.my-booked button:disabled {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  opacity: 0.92;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── Admin slot styling (booked, free, waiting for approval) ── */
+.slot.admin-slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.slot-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-base);
+}
+
+.slot-time {
+  font-weight: 600;
+}
+
+.slot-detail {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.slot-detail-pending {
+  color: var(--warn-text);
+}
+
+.slot-detail-booked {
+  color: var(--accent);
+}
+
+.slot-detail-free {
+  color: var(--free-text);
+}
+
+.slot-requesters,
+.slot-bookers {
+  display: inline-block;
+  font-size: var(--fs-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* State: Waiting for approval */
+.slot.slot-pending-approval {
+  border-left-color: var(--warn-dot);
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+}
+
+.slot.slot-pending-approval:hover {
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.16);
+}
+
+.slot.slot-pending-approval .slot-time {
+  color: var(--warn-text);
+}
+
+/* State: Booked (confirmed) */
+.slot.slot-confirmed-booked {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--border);
+}
+
+.slot.slot-confirmed-booked .slot-time {
+  color: var(--accent);
+}
+
+/* State: All free */
+.slot.slot-all-free {
+  border-left-color: var(--free-border);
+  background: var(--free);
+  border-color: var(--border);
+}
+
+.slot.slot-all-free .slot-time {
+  color: var(--free-text);
+}
+
+/* Badges and action buttons */
+.slot-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.slot-badge.badge-free {
+  background: var(--free-border);
+  color: #ffffff;
+}
+
+.slot-badge.badge-booked {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.slot-badge.badge-past {
+  background: var(--border-strong);
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .slot-badge.badge-past {
+  background: #27272a;
+  color: #a1a1aa;
+}
+
+/* Past slots */
+.slot.slot-past {
+  border-left-color: var(--border-strong) !important;
+  background: var(--panel-bg-subtle) !important;
+  border-color: var(--border) !important;
+  opacity: 0.55;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.slot.slot-past .slot-time,
+.slot.slot-past span:first-child {
+  color: var(--muted) !important;
+  font-weight: 500;
+}
+
+.slot-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  letter-spacing: 0;
+  transition: transform 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.slot-badge-btn.badge-pending {
+  background: var(--warn-dot);
+  color: #ffffff;
+}
+
+.slot-badge-btn.badge-pending:hover {
+  background: #d97706;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+  transform: translateY(-1px);
+}
+
+.slot-admin-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+.slot-admin-actions button.approve-btn,
+.slot-admin-actions button.deny-btn {
+  height: 1.85rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  letter-spacing: 0;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.slot-admin-actions button.approve-btn {
+  background: var(--free-border);
+  color: #fff;
+  border: none;
+}
+
+.slot-admin-actions button.approve-btn:hover {
+  background: var(--free-text);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.28);
+}
+
+.slot-admin-actions button.deny-btn {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border-strong);
+}
+
+.slot-admin-actions button.deny-btn:hover {
+  background: var(--error-bg);
+  border-color: var(--danger);
+}
+
+.slot-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.85rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  letter-spacing: 0;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.slot-cancel-btn:hover {
+  background: var(--error-bg);
+  border-color: var(--danger);
+  color: var(--danger-hover, #dc2626);
+}
+
+/* ── Booking drawer ────────────────────────────────────────── */
+
+/* Backdrop — always rendered, fades in/out via opacity.
+   Uses :has() to detect when #booking-panel is visible.       */
+.booking-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 48;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+body:has(#booking-panel:not([hidden])) .booking-drawer-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Drawer shell — always rendered as fixed.
+   [hidden] is overridden so CSS transitions can animate.
+   Visibility + pointer-events gate actual interactability.    */
+.booking-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--panel-bg);
+  border-top: 1.5px solid var(--border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-modal);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+}
+
+/* Override UA [hidden]=display:none so transition works */
+.booking-drawer[hidden] {
+  display: flex !important;
+  flex-direction: column;
+  transform: translateY(100%);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.booking-drawer:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.booking-drawer-handle {
+  width: 3rem;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  margin: var(--sp-3) auto var(--sp-1);
+  flex-shrink: 0;
+}
+
+.booking-drawer-inner {
+  padding: var(--sp-4) var(--sp-6) var(--sp-8);
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.booking-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.booking-drawer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-drawer-eyebrow {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted-2);
+}
+
+.booking-slot-label {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.booking-drawer-actions {
+  margin-bottom: var(--sp-3);
+}
+
+.booking-drawer-actions button {
+  height: 2.75rem;
+  padding: 0 var(--sp-8);
+  font-size: var(--fs-base);
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 16px rgba(59,110,246,.28);
+}
+
+.booking-drawer-actions button:hover {
+  box-shadow: 0 6px 20px rgba(59,110,246,.38);
+}
+
+/* ── Tab section ───────────────────────────────────────────── */
+
+.app-tabs-section {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* Tab bar */
+.app-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 var(--sp-4);
+  background: var(--panel-bg-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.app-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn {
+  height: 3rem;
+  padding: 0 var(--sp-4);
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  box-shadow: none;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.tab-btn.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.tab-btn:active {
+  transform: none;
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Admin tab: hidden until app.js reveals #add-resource-panel (admin user) */
+.tab-admin-only {
+  display: none;
+}
+
+#app-main:has(#add-resource-panel:not([hidden])) .tab-admin-only {
+  display: inline-flex;
+}
+
+/* Member-only tab & pane: hidden when admin user is active */
+.tab-member-only {
+  display: inline-flex;
+}
+
+#app-main:has(#add-resource-panel:not([hidden])) .tab-member-only,
+#app-main:has(#add-resource-panel:not([hidden])) div.tab-pane.tab-member-only,
+.tab-btn[hidden],
+.tab-pane[hidden] {
+  display: none !important;
+}
+
+/* Tab panes */
+.tab-pane {
+  display: none;
+  padding: var(--sp-6);
+}
+
+.tab-pane.is-active {
+  display: block;
+}
+
+/* Empty state: shown when #pending-approvals-panel is hidden (non-admin) */
+.tab-empty-state {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  text-align: center;
+  padding: var(--sp-8) 0;
+  margin: 0;
+  display: none;
+}
+
+#pane-approvals:has(#pending-approvals-panel[hidden]) .tab-empty-state {
+  display: block;
+}
+
+#pane-approvals:has(#pending-approvals-panel:not([hidden])) .tab-empty-state {
+  display: none;
+}
+
+/* ── Admin subsections ─────────────────────────────────────── */
+
+.admin-subsection {
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--border);
+}
+
+.admin-subsection:first-child,
+.admin-subsection + .admin-subsection:not([hidden]):first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* First visible subsection in the pane should not have top separator.
+   We target via has() for robustness.                                  */
+#pane-admin:has(#pending-users-panel:not([hidden])) #pending-users-panel {
+  border-top: none;
+  padding-top: 0;
+}
+
+#pane-admin:has(#pending-users-panel[hidden]) #add-resource-panel {
+  border-top: none;
+  padding-top: 0;
+}
+
+.admin-subsection[hidden] {
+  display: none;
+}
+
+.subsection-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* ── Messages ──────────────────────────────────────────────── */
+
+.message {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+}
+
+.message.error,
+.message.success {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+}
+
+.message.error {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.message.success {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+/* ── Lists — reservations, approvals, pending users ────────── */
+
+#my-reservations-list,
+#pending-approvals-list,
+#pending-users-list,
+#manage-resources-list,
+#find-slot-results,
+#booking-alternatives,
+#repeat-preview-list,
+#my-waitlist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+#my-reservations-list li,
+#pending-approvals-list li,
+#pending-users-list li,
+#manage-resources-list li,
+#find-slot-results li,
+#booking-alternatives li,
+#repeat-preview-list li,
+#my-waitlist-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  background: var(--panel-bg-subtle);
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+#my-reservations-list li:hover,
+#pending-approvals-list li:hover,
+#pending-users-list li:hover,
+#manage-resources-list li:hover,
+#find-slot-results li:hover,
+#booking-alternatives li:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Status tag in reservation items */
+#my-reservations-list .status-tag,
+#my-waitlist-list .status-tag {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--booked);
+  padding: 0.15rem var(--sp-2);
+  border-radius: var(--radius-full);
+  margin-left: var(--sp-2);
+}
+
+/* Cancel button in reservation list items */
+#my-reservations-list li button {
+  height: 1.9rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+}
+
+#my-reservations-list li button:hover {
+  background: var(--error-bg);
+  border-color: var(--danger);
+  box-shadow: none;
+}
+
+/* Approve & Reject buttons in approvals list */
+#pending-approvals-list .approval-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+#pending-approvals-list li button.approve-btn {
+  height: 1.9rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  background: var(--free-border);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+#pending-approvals-list li button.approve-btn:hover {
+  background: var(--free-text);
+  box-shadow: none;
+}
+
+#pending-approvals-list li button.deny-btn {
+  height: 1.9rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+#pending-approvals-list li button.deny-btn:hover {
+  background: var(--error-bg);
+  border-color: var(--danger);
+  box-shadow: none;
+}
+
+/* Pending users list button row */
+#pending-users-list .pending-user-actions,
+#manage-resources-list .pending-user-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
+#pending-users-list button.approve-btn,
+#manage-resources-list button.approve-btn {
+  height: 1.9rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  background: var(--free-border);
+  color: #fff;
+  border: none;
+}
+
+#pending-users-list button.approve-btn:hover,
+#manage-resources-list button.approve-btn:hover {
+  background: var(--free-text);
+  box-shadow: none;
+}
+
+#pending-users-list button.deny-btn,
+#manage-resources-list button.deny-btn {
+  height: 1.9rem;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-xs);
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border-strong);
+}
+
+#pending-users-list button.deny-btn:hover,
+#manage-resources-list button.deny-btn:hover {
+  background: var(--error-bg);
+  border-color: var(--danger);
+  box-shadow: none;
+}
+
+/* ── Admin pending-users badge (removed from navbar) ──────── */
+
+#pending-users-badge,
+.badge-btn {
+  display: none !important;
+}
+
+/* ── Access-gate screens (pending / rejected) ──────────────── */
+
+.access-screen {
+  max-width: 30rem;
+  margin: var(--sp-12) auto;
+  padding: 0 var(--sp-4);
+}
+
+.access-screen[hidden] {
+  display: none;
+}
+
+.access-screen .panel {
+  text-align: center;
+}
+
+.access-screen h2 {
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.access-screen p {
+  color: var(--muted);
+  font-size: var(--fs-base);
+  line-height: 1.65;
+  margin: 0 0 var(--sp-6);
+}
+
+/* ── Chatbot FAB ───────────────────────────────────────────── */
+
+.chatbot-toggle {
+  position: fixed;
+  right: var(--sp-6);
+  bottom: var(--sp-6);
+  z-index: 20;
+  width: 3.25rem;
+  height: 3.25rem;
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  box-shadow: 0 4px 16px rgba(59,130,246,.35), 0 1px 4px rgba(0,0,0,.2);
+  transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+}
+
+.chatbot-toggle:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 6px 22px rgba(59,130,246,.45), 0 2px 6px rgba(0,0,0,.25);
+  transform: scale(1.06);
+}
+
+.chatbot-toggle:active {
+  transform: scale(0.96);
+}
+
+.chatbot-toggle svg {
+  display: block;
+}
+
+.chatbot-toggle .chatbot-icon-close,
+.chatbot-toggle.open .chatbot-icon-open {
+  display: none;
+}
+
+.chatbot-toggle.open .chatbot-icon-close {
+  display: block;
+}
+
+.chatbot-toggle.open {
+  z-index: 40;
+}
+
+/* ── Chatbot panel ─────────────────────────────────────────── */
+
+.chatbot-panel {
+  position: fixed;
+  right: var(--sp-6);
+  bottom: 5.5rem;
+  z-index: 30;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: min(38rem, calc(100vh - 2rem));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+}
+
+.chatbot-panel[hidden] {
+  display: none;
+}
+
+.chatbot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-bg-subtle);
+}
+
+.chatbot-header h2 {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.chatbot-close {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  min-width: 0;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+}
+
+.chatbot-close:hover {
+  background: var(--booked);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.chatbot-messages {
+  min-height: 12rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  scrollbar-width: thin;
+}
+
+.chatbot-message {
+  max-width: 88%;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chatbot-message.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #ffffff;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.chatbot-message.assistant {
+  align-self: flex-start;
+  background: var(--booked);
+  color: var(--text);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.chatbot-message.loading {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.chatbot-starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-4) var(--sp-3);
+}
+
+.chatbot-starters button {
+  height: auto;
+  background: var(--panel-bg-subtle);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-full);
+}
+
+.chatbot-starters button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: none;
+  transform: none;
+}
+
+.chatbot-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.chatbot-form textarea {
+  width: 100%;
+  min-width: 0;
+  resize: none;
+  max-height: 8rem;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-base);
+  line-height: 1.5;
+}
+
+.chatbot-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.chatbot-form button {
+  height: auto;
+  align-self: flex-end;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-sm);
+  border-radius: var(--radius-sm);
+}
+
+.chatbot-form button:disabled {
+  background: var(--booked-border);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.chatbot-error {
+  min-height: 1rem;
+  margin: 0;
+  padding: 0 var(--sp-4) var(--sp-3);
+  color: var(--error-text);
+  font-size: var(--fs-xs);
+}
+
+/* ── Responsive: ≤ 720px ───────────────────────────────────── */
+
+@media (max-width: 720px) {
+  header {
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  main {
+    padding: var(--sp-4) var(--sp-4) 7rem;
+    gap: var(--sp-4);
+  }
+
+  .panel,
+  .app-toolbar {
+    padding: var(--sp-4);
+    border-radius: var(--radius-md);
+  }
+
+  .app-tabs-section {
+    border-radius: var(--radius-md);
+  }
+
+  .account-bar {
+    gap: var(--sp-2);
+  }
+
+
+
+  select,
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  input[type="date"] {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .controls-row {
+    gap: var(--sp-3);
+  }
+
+  .controls-row label {
+    flex: 1 1 100%;
+  }
+
+  .booking-drawer-inner {
+    padding: var(--sp-4) var(--sp-4) var(--sp-8);
+  }
+
+  .booking-slot-label {
+    font-size: var(--fs-md);
+  }
+
+  .booking-drawer-actions button {
+    padding: 0 var(--sp-6);
+  }
+
+  .tab-pane {
+    padding: var(--sp-4);
+  }
+
+  .chatbot-panel {
+    right: var(--sp-3);
+    bottom: 4.75rem;
+    width: calc(100vw - 1.5rem);
+    max-height: min(31rem, calc(100vh - 1.5rem));
+    border-radius: var(--radius-lg);
+  }
+
+  .chatbot-toggle {
+    right: var(--sp-3);
+    bottom: var(--sp-3);
+  }
+
+  .chatbot-messages {
+    max-height: 16rem;
+  }
+}
+
+/* ── Responsive: ≤ 420px ───────────────────────────────────── */
+
+@media (max-width: 420px) {
+  header h1 {
+    font-size: var(--fs-base);
+  }
+
+  header h1 {
+    display: none; /* keep only the brand-mark chip at very small width */
+  }
+}
+
+/* ── View switch (Day timeline | Resource board) ─────────────────────── */
+.view-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--panel-bg-subtle);
+}
+
+button.view-switch-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  box-shadow: none;
+  height: 1.9rem;
+  padding: 0 var(--sp-3);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+}
+
+button.view-switch-btn:hover {
+  background: var(--booked);
+  color: var(--text);
+}
+
+button.view-switch-btn.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* ── Resource board ───────────────────────────────────────────────────
+   Rows = resources, x = time. --board-slot is the width of 30 minutes. */
+.board-panel {
+  position: relative;
+  --board-slot: 40px;
+  --board-name: 11rem;
+}
+
+.board-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.board-toolbar .view-switch {
+  margin-top: 0;
+}
+
+.board-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+}
+
+.board-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-3);
+}
+
+.board-key {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: -6px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.board-scroll {
+  overflow-x: auto;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.board-grid {
+  min-width: max-content;
+}
+
+.board-row {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.board-row:last-child {
+  border-bottom: none;
+}
+
+.board-name {
+  flex: 0 0 var(--board-name);
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  overflow: hidden;
+}
+
+.board-name small {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.board-track {
+  position: relative;
+  flex: 0 0 auto;
+  height: 3rem;
+  cursor: pointer;
+  background-image: repeating-linear-gradient(
+    to right, var(--border) 0 1px, transparent 1px var(--board-slot)
+  );
+}
+
+.board-header .board-track {
+  height: 1.75rem;
+  cursor: default;
+}
+
+.board-header .board-name {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.board-hour {
+  position: absolute;
+  top: 0.35rem;
+  padding-left: 3px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.board-closed,
+.board-blackout,
+.board-load {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.board-closed,
+.board-key.is-closed {
+  background: var(--booked);
+  opacity: 0.9;
+}
+
+.board-blackout,
+.board-key.is-blackout {
+  background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.35) 0 5px, transparent 5px 10px);
+}
+
+/* Unit pools: the load is a 16px strip at the top of the row; bookings sit
+   in their own sub-lanes below it (see renderBoardDay). */
+.board-load {
+  z-index: 1;
+  bottom: auto;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 10px;
+  line-height: 16px;
+  overflow: hidden;
+}
+
+.board-block.is-lane {
+  bottom: auto;
+  height: 18px;
+  line-height: 18px;
+}
+
+.board-key.is-load {
+  background: rgba(59, 110, 246, 0.35);
+}
+
+.board-block {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 0 5px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: var(--fs-xs);
+  line-height: calc(3rem - 12px);
+  white-space: nowrap;
+}
+
+.board-block.is-mine,
+.board-key.is-mine {
+  background: var(--accent);
+}
+
+.board-block.is-confirmed,
+.board-key.is-confirmed {
+  background: #16a34a;
+}
+
+.board-block.is-pending,
+.board-key.is-pending {
+  background: repeating-linear-gradient(45deg, #d97706 0 6px, #f59e0b 6px 12px);
+}
+
+.board-block.is-busy,
+.board-key.is-busy {
+  background: var(--muted);
+  opacity: 0.6;
+}
+
+.board-block.is-mine.is-pending {
+  background: repeating-linear-gradient(45deg, var(--accent) 0 6px, var(--accent-hover) 6px 12px);
+}
+
+.board-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 2px;
+  background: #ef4444;
+  pointer-events: none;
+}
+
+.board-week-cell {
+  flex: 0 0 8rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 1px solid var(--border);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.board-week-cell:hover {
+  background: var(--panel-bg-subtle);
+}
+
+.board-week-cell.is-closed {
+  background: var(--booked);
+  cursor: default;
+}
+
+.board-bar {
+  height: 6px;
+  margin: var(--sp-1) 0;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--border);
+}
+
+.board-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.board-popover {
+  position: absolute;
+  z-index: 30;
+  min-width: 15rem;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--fs-sm);
+}
+
+.board-popover .pending-user-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+@media (max-width: 640px) {
+  .board-panel {
+    --board-slot: 32px;
+    --board-name: 7.5rem;
+  }
+}
+
+/* ── Admin sections as collapsible <details> ──────────────────────────── */
+.admin-details > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  cursor: pointer;
+  list-style: none;
+  padding: var(--sp-1) 0;
+}
+
+.admin-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-details > summary::before {
+  content: "▸";
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.admin-details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.admin-details > summary .admin-summary {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.admin-details[open] > summary {
+  margin-bottom: var(--sp-3);
+}

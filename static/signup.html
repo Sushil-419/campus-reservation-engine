@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign up — SyncSpace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+  <link rel="stylesheet" href="/static/style.css?v=v26">
+  <link rel="stylesheet" href="/static/auth.css?v=v11">
+</head>
+<body class="auth-body">
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme"></button>
+
+  <div class="auth-shell">
+    <main class="auth-pane">
+      <a class="auth-brand" href="/welcome.html">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3.5" y="5" width="17" height="15.5" rx="3"/>
+            <path d="M3.5 10h17M8 3v4M16 3v4"/>
+            <path d="M9 15.2l2.1 2.1 4-4"/>
+          </svg>
+        </span>
+        SyncSpace
+      </a>
+
+  <div class="auth-card">
+    <div id="signup-form-section">
+      <h1>Create your account</h1>
+      <p class="auth-subtitle">Sign up to start booking resources.</p>
+
+      <form id="signup-form" class="auth-form">
+        <div class="auth-field">
+          <label for="signup-name">Name</label>
+          <input type="text" id="signup-name" required autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required minlength="8" autocomplete="new-password">
+          <span class="auth-hint">At least 8 characters</span>
+        </div>
+        <div class="auth-field">
+          <label for="signup-retype">Retype password</label>
+          <input type="password" id="signup-retype" required minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" class="auth-submit">Create account</button>
+        <p id="signup-message" class="auth-message" aria-live="polite"></p>
+      </form>
+
+
+      <p class="auth-footer">Already have an account? <a href="/login.html">Log in</a></p>
+    </div>
+
+    <div id="signup-check-email" hidden>
+      <span id="signup-check-email-icon" class="auth-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>
+      </span>
+      <h1>Check your email</h1>
+      <p class="auth-subtitle">
+        We sent a verification link to <strong id="signup-check-email-address" class="auth-email"></strong>.
+        Click it to activate your account.
+      </p>
+      <p id="signup-waiting" class="auth-status" aria-live="polite">
+        <span class="auth-status-dot" aria-hidden="true"></span>
+        <span id="signup-waiting-text">Waiting for verification…</span>
+      </p>
+      <a href="/login.html" class="auth-google-btn">Back to log in</a>
+      <p class="auth-note">
+        Didn't get it? Check your spam folder, or make sure the address is correct and sign up again.
+      </p>
+    </div>
+  </div>
+    </main>
+
+    <aside class="auth-visual" aria-label="How SyncSpace prevents double booking">
+      <div>
+        <div class="race" aria-hidden="true">
+          <div class="race-head"><span>Seminar Hall</span><span>Tomorrow</span></div>
+          <ol class="race-rows">
+            <li class="race-row is-booked"><time>09:00</time><span>Booked</span></li>
+            <li class="race-row"><time>10:00</time><span>Free</span></li>
+            <li class="race-row race-target"><time>11:00</time>
+              <span class="race-label"><span class="race-free">Free</span><span class="race-won">Asha</span></span></li>
+            <li class="race-row race-next"><time>12:00</time>
+              <span class="race-label"><span class="race-free">Free</span><span class="race-won">Ravi</span></span></li>
+            <li class="race-row is-booked"><time>13:00</time><span>Booked</span></li>
+          </ol>
+          <span class="race-chip chip-a"><i>A</i>Asha</span>
+          <span class="race-chip chip-b"><i>R</i>Ravi</span>
+        </div>
+        <p class="race-caption" aria-hidden="true">
+          <span class="cap-1">Asha and Ravi both ask for 11:00 at the same moment.</span>
+          <span class="cap-2">Asha gets 11:00. Ravi is offered 12:00 instead.</span>
+        </p>
+      </div>
+      <div class="auth-visual-copy">
+        <h2>Every slot has exactly one owner.</h2>
+        <p>The database checks each booking, so two people can never end up with the same room, lab or machine, even when they click at the same instant.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script src="/static/theme.js?v=redesign-8"></script>
+  <script src="/static/auth.js?v=redesign-10"></script>
+</body>
+</html>

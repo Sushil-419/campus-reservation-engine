@@ -1,0 +1,16 @@
+# Project guardrails (read before every task)
+- Stack: Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL 17 + btree_gist, Pydantic v2, vanilla HTML/CSS/JS (no framework, no build step), pytest.
+- Git is NOT allowed in this project. Never run git commands.
+- Run tests with: pytest -q   (uses the isolated resvdb_test DB via tests/conftest.py)
+- Double-booking safety lives in the DB: the `no_overlap` and `no_user_duplicate_reservation` EXCLUDE constraints, plus SELECT ... FOR UPDATE for quota/capacity in app/services/reservations.py. Never weaken these.
+- Do ONLY what the current phase asks. No drive-by refactors, renames, reformatting, or "improvements" to unrelated code.
+- Every schema change = a NEW Alembic migration with a working downgrade(). Never edit existing migration files.
+- No new dependencies unless the phase explicitly allows it; if allowed, pin the version in requirements.txt.
+- Keep the frontend vanilla JS. Reuse existing CSS classes/patterns in static/style.css.
+- All existing tests must keep passing. Every new behaviour gets tests.
+- Never read/print .env secrets.
+- Do NOT create backups or copies of the project (it is backed up on the college server).
+- Do NOT write or update documentation (README.md, docs/*, ENGINEERING_NOTES.md) unless the phase explicitly asks; docs are done at the end. Code comments are fine.
+- TIMING: at the very start of every phase, run `date`, then BEFORE writing any code print one line: "ESTIMATE: <N> minutes — <one-line reason>". At the end, run `date` again and put "TIME: estimated <N> min, actual <M> min" as the FIRST line of the final report (actual = difference between the two `date` outputs).
+- Finish every phase with the requested report.
+- If something in the instructions conflicts with the actual code, STOP and ask instead of guessing.

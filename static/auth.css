@@ -1,0 +1,789 @@
+/* ================================================================
+   Reservation & Scheduling Engine — auth pages
+   auth.css — styles for login, signup, forgot/reset-password, welcome
+   Relies on style.css for tokens (@import'd there via Google Fonts).
+   ================================================================ */
+
+/* ── Auth page tokens ──────────────────────────────────────── */
+
+.auth-body {
+  --auth-card-bg:     var(--panel-bg);
+  --auth-card-border: var(--border);
+  --auth-input-bg:    var(--panel-bg-subtle);
+  --auth-input-border: var(--border-strong);
+  --auth-label:       #374151;
+  --auth-btn-bg:      var(--accent);
+  --auth-btn-hover:   var(--accent-hover);
+  --auth-btn-text:    var(--accent-contrast);
+}
+
+:root[data-theme="dark"] .auth-body {
+  --auth-card-bg:     #1a1a1b;
+  --auth-card-border: #2a2a2c;
+  --auth-input-bg:    #232325;
+  --auth-input-border: #2c2c2f;
+  --auth-label:       #c8c8cc;
+  --auth-btn-bg:      #5b8cff;
+  --auth-btn-hover:   #7aa2ff;
+  --auth-btn-text:    #0b1020;
+}
+
+/* ── Auth page body ────────────────────────────────────────── */
+
+.auth-body {
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6) var(--sp-4);
+  background: var(--bg);
+}
+
+:root[data-theme="dark"] .auth-body {
+  background: #0a0a0b;
+}
+
+/* Theme toggle anchored to top-right corner on auth pages */
+.auth-body .theme-toggle {
+  position: fixed;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  z-index: 25;
+}
+
+/* ── Auth card ─────────────────────────────────────────────── */
+
+.auth-card {
+  width: 100%;
+  max-width: 23rem;
+  background: var(--auth-card-bg);
+  border: 1px solid var(--auth-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-8) 1.75rem 1.75rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-card h1 {
+  margin: 0 0 var(--sp-2);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-align: center;
+  color: var(--text);
+}
+
+.auth-subtitle {
+  margin: 0 0 var(--sp-6);
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--fs-base);
+}
+
+/* ── Auth form ─────────────────────────────────────────────── */
+
+/* Override the dashboard's global `form` rule (centered, wrapping row). */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 1.25rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.auth-field label {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--auth-label);
+}
+
+.auth-field input {
+  /* style.css gives inputs `flex: 1` under 720px for the dashboard toolbar;
+     inside this column layout that would collapse their height. */
+  flex: none;
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--auth-input-border);
+  border-radius: var(--radius-md);
+  background: var(--auth-input-bg);
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-family: inherit;
+  min-width: 0;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.auth-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--auth-card-bg);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* Keep browser autofill from painting inputs light blue in dark mode. */
+.auth-field input:-webkit-autofill,
+.auth-field input:-webkit-autofill:hover,
+.auth-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--auth-input-bg) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.auth-hint {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+/* ── Auth form links row ───────────────────────────────────── */
+
+.auth-row-between {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(-1 * var(--sp-3));
+  font-size: var(--fs-sm);
+}
+
+.auth-row-between a,
+.auth-footer a {
+  color: var(--auth-btn-bg);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-row-between a:hover,
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ── Primary submit button ─────────────────────────────────── */
+
+.auth-submit {
+  width: 100%;
+  height: 2.625rem;
+  margin-top: var(--sp-1);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: var(--auth-btn-bg);
+  color: var(--auth-btn-text);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.2s, transform 0.12s;
+}
+
+.auth-submit:active {
+  transform: scale(0.98);
+}
+
+.auth-submit:hover {
+  background: var(--auth-btn-hover);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+}
+
+/* ── Divider ───────────────────────────────────────────────── */
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--auth-card-border);
+}
+
+/* ── Google button ─────────────────────────────────────────── */
+
+.auth-google-btn {
+  width: 100%;
+  height: 2.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid var(--auth-input-border);
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.auth-google-btn:hover {
+  background: var(--auth-input-bg);
+}
+
+/* ── Footer link ───────────────────────────────────────────── */
+
+.auth-footer {
+  margin: var(--sp-4) 0 0;
+  text-align: center;
+  font-size: var(--fs-base);
+  color: var(--muted);
+}
+
+/* ── Inline messages ───────────────────────────────────────── */
+
+.auth-message {
+  margin: 0;
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* Take no space until there's something to say. */
+.auth-message:empty {
+  display: none;
+}
+
+.auth-message.error {
+  color: var(--error-text);
+}
+
+.auth-message.success {
+  color: var(--success-text);
+}
+
+/* ── Status icon badge (check email / verified / link expired) ── */
+
+.auth-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto var(--sp-6);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+
+.auth-icon svg {
+  display: block;
+}
+
+.auth-icon.is-success {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.28);
+}
+
+.auth-icon.is-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.28);
+}
+
+:root[data-theme="dark"] .auth-icon:not(.is-success):not(.is-error) {
+  background: rgba(91, 140, 255, 0.12);
+  color: #5b8cff;
+  box-shadow: inset 0 0 0 1px rgba(91, 140, 255, 0.25);
+}
+
+.auth-email {
+  /* Wrap as a whole onto its own line; only split a single address that
+     is wider than the card. */
+  display: inline-block;
+  max-width: 100%;
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* "Waiting for verification…" pill with a pulsing dot */
+.auth-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-6);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.auth-status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--auth-btn-bg);
+  animation: auth-pulse 1.4s ease-in-out infinite;
+}
+
+.auth-status.is-done {
+  color: #22c55e;
+}
+
+.auth-status.is-done .auth-status-dot {
+  background: #22c55e;
+  animation: none;
+}
+
+@keyframes auth-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.35; transform: scale(0.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-status-dot { animation: none; }
+}
+
+.auth-note {
+  margin: var(--sp-4) 0 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ================================================================
+   Split layout for log in / sign up (UI polish)
+   Left: the form. Right: a looping demo of what SyncSpace guarantees
+   — two people request the same slot, exactly one gets it and the
+   other is moved to the next free hour. Pure CSS, no JS.
+   ================================================================ */
+
+.auth-body:has(.auth-shell) {
+  display: block;
+  padding: 0;
+}
+
+.auth-shell {
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+/* .auth-pane is a <main>; undo the dashboard's centred, max-width main. */
+.auth-pane {
+  background: var(--panel-bg);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  padding: var(--sp-12) var(--sp-6);
+}
+
+.auth-pane > * {
+  width: 100%;
+  max-width: 24rem;
+}
+
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-8);
+  color: var(--text);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Inside the split layout the card loses its box: the pane is the surface. */
+.auth-shell .auth-card {
+  max-width: 24rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.auth-shell .auth-card h1,
+.auth-shell .auth-subtitle {
+  text-align: left;
+}
+
+.auth-shell .auth-card h1 {
+  font-size: 2.25rem;
+  line-height: 1.1;
+}
+
+.auth-shell .auth-subtitle {
+  margin-bottom: var(--sp-8);
+  font-size: var(--fs-md);
+}
+
+.auth-shell .auth-footer {
+  text-align: left;
+  margin-top: var(--sp-6);
+}
+
+/* Entrance: the form settles in once, on page load. */
+.auth-card,
+.auth-brand {
+  animation: auth-rise 0.6s var(--ease-out) both;
+}
+
+.auth-card {
+  animation-delay: 0.06s;
+}
+
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Submit button: busy state while the request is in flight */
+.auth-submit[aria-busy="true"] {
+  pointer-events: none;
+  color: transparent;
+  position: relative;
+}
+
+.auth-submit[aria-busy="true"]::after {
+  content: "";
+  position: absolute;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--auth-btn-text);
+  border-right-color: transparent;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Wrong password: the form shakes once */
+.auth-form.is-shaking {
+  animation: auth-shake 0.42s var(--ease-out);
+}
+
+@keyframes auth-shake {
+  0%, 100% { transform: none; }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+}
+
+.auth-message.error {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  background: var(--error-bg);
+}
+
+/* ── Right pane: the visual ───────────────────────────────── */
+
+.auth-visual {
+  --viz-bg:   #2f55d4;
+  --viz-grid: rgba(255, 255, 255, 0.09);
+  --viz-ink:  #ffffff;
+  --viz-soft: rgba(255, 255, 255, 0.78);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-10);
+  padding: var(--sp-12) clamp(2rem, 6vw, 5rem);
+  background-color: var(--viz-bg);
+  /* planner-paper grid: one cell = half an hour */
+  background-image:
+    linear-gradient(var(--viz-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--viz-grid) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+  color: var(--viz-ink);
+}
+
+:root[data-theme="dark"] .auth-visual {
+  --viz-bg:   #101a3f;
+  --viz-grid: rgba(120, 150, 255, 0.10);
+}
+
+.auth-visual-copy h2 {
+  margin: 0 0 var(--sp-3);
+  max-width: 18ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.auth-visual-copy p {
+  margin: 0;
+  max-width: 42ch;
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--viz-soft);
+}
+
+/* The schedule card */
+.race {
+  --row-h: 44px;
+  --row-gap: 8px;
+  --head-h: 44px;
+  position: relative;
+  width: min(100%, 22rem);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--text);
+  box-shadow: 0 30px 60px -20px rgba(8, 15, 50, 0.55);
+}
+
+.race-head {
+  height: var(--head-h);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 600;
+}
+
+.race-head span:last-child {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.race-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--row-gap);
+}
+
+.race-row {
+  position: relative;
+  height: var(--row-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  background: var(--free);
+  box-shadow: inset 3px 0 0 var(--free-border);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--free-text);
+}
+
+.race-row time {
+  font-variant-numeric: tabular-nums;
+}
+
+.race-row.is-booked {
+  background: var(--booked);
+  box-shadow: inset 3px 0 0 var(--booked-border);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* label swap: "Free" → owner's name */
+.race-label {
+  position: relative;
+  display: grid;
+  justify-items: end;
+}
+
+.race-label > span {
+  grid-area: 1 / 1;
+}
+
+.race-won {
+  opacity: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: var(--fs-xs);
+}
+
+/* the two requests */
+.race-chip {
+  position: absolute;
+  top: 0;
+  right: 96px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 4px;
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  color: #1a1c22;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(8, 15, 50, 0.28);
+  opacity: 0;
+}
+
+.race-chip i {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 10px;
+  color: #ffffff;
+}
+
+.chip-a i { background: var(--accent); }
+.chip-b i { background: #d97706; }
+
+/* row tops: padding 16 + head 44 + i * (44 + 8); chip centred (+8) */
+.race { --r2: 172px; --r3: 224px; --start: 400px; }
+
+/* Caption under the card, narrating the loop */
+.race-caption {
+  position: relative;
+  min-height: 1.6em;
+  margin: var(--sp-4) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--viz-soft);
+}
+
+.race-caption span {
+  position: absolute;
+  inset: 0 auto auto 0;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .race-chip.chip-a     { animation: chip-a 9s var(--ease-out) infinite; }
+  .race-chip.chip-b     { animation: chip-b 9s var(--ease-out) infinite; }
+  .race-target          { animation: row-contested 9s ease infinite; }
+  .race-next            { animation: row-taken 9s ease infinite; }
+  .race-target .race-won,
+  .race-next .race-won  { animation: won-a 9s var(--ease-spring) infinite; }
+  .race-next .race-won  { animation-name: won-b; }
+  .race-target .race-free { animation: free-a 9s ease infinite; }
+  .race-next .race-free   { animation: free-b 9s ease infinite; }
+  .race-caption .cap-1  { animation: cap-1 9s ease infinite; }
+  .race-caption .cap-2  { animation: cap-2 9s ease infinite; }
+}
+
+/* Reduced motion: show the outcome as a still picture */
+@media (prefers-reduced-motion: reduce) {
+  .race-won { opacity: 1; }
+  .race-free { opacity: 0; }
+  .race-caption .cap-2 { opacity: 1; }
+}
+
+@keyframes chip-a {
+  0%, 6%   { opacity: 0; transform: translate(-82px, var(--start)); }
+  12%      { opacity: 1; }
+  30%      { transform: translate(-82px, var(--r2)); }
+  40%      { opacity: 1; transform: translate(-82px, var(--r2)) scale(1); }
+  45%, 100% { opacity: 0; transform: translate(-82px, var(--r2)) scale(0.6); }
+}
+
+@keyframes chip-b {
+  0%, 9%   { opacity: 0; transform: translate(0, var(--start)); }
+  15%      { opacity: 1; }
+  32%      { transform: translate(0, var(--r2)); }
+  42%      { transform: translate(0, var(--r2)); }
+  44%      { transform: translate(-7px, var(--r2)); }
+  46%      { transform: translate(6px, var(--r2)); }
+  48%      { transform: translate(-3px, var(--r2)); }
+  50%      { transform: translate(0, var(--r2)); }
+  62%      { opacity: 1; transform: translate(0, var(--r3)) scale(1); }
+  68%, 100% { opacity: 0; transform: translate(0, var(--r3)) scale(0.6); }
+}
+
+@keyframes row-contested {
+  0%, 26%  { box-shadow: inset 3px 0 0 var(--free-border); }
+  32%, 40% { box-shadow: inset 3px 0 0 #f59e0b, 0 0 0 2px #f59e0b; background: var(--warn-bg); color: var(--warn-text); }
+  44%, 92% { box-shadow: inset 3px 0 0 var(--accent); background: var(--accent-soft); color: var(--accent); }
+  100%     { box-shadow: inset 3px 0 0 var(--free-border); }
+}
+
+@keyframes row-taken {
+  0%, 62%  { box-shadow: inset 3px 0 0 var(--free-border); }
+  67%, 92% { box-shadow: inset 3px 0 0 var(--accent); background: var(--accent-soft); color: var(--accent); }
+  100%     { box-shadow: inset 3px 0 0 var(--free-border); }
+}
+
+@keyframes won-a {
+  0%, 41%  { opacity: 0; transform: scale(0.6); }
+  46%, 92% { opacity: 1; transform: scale(1); }
+  100%     { opacity: 0; transform: scale(1); }
+}
+
+@keyframes won-b {
+  0%, 64%  { opacity: 0; transform: scale(0.6); }
+  69%, 92% { opacity: 1; transform: scale(1); }
+  100%     { opacity: 0; transform: scale(1); }
+}
+
+@keyframes free-a {
+  0%, 40%  { opacity: 1; }
+  43%, 95% { opacity: 0; }
+  100%     { opacity: 1; }
+}
+
+@keyframes free-b {
+  0%, 63%  { opacity: 1; }
+  66%, 95% { opacity: 0; }
+  100%     { opacity: 1; }
+}
+
+@keyframes cap-1 {
+  0%, 8%   { opacity: 0; transform: translateY(4px); }
+  13%, 40% { opacity: 1; transform: none; }
+  44%, 100% { opacity: 0; }
+}
+
+@keyframes cap-2 {
+  0%, 46%  { opacity: 0; transform: translateY(4px); }
+  51%, 90% { opacity: 1; transform: none; }
+  95%, 100% { opacity: 0; }
+}
+
+/* Small screens: the form alone, centred */
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+  .auth-visual {
+    display: none;
+  }
+  .auth-pane {
+    padding: var(--sp-10) var(--sp-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .auth-brand,
+  .auth-form.is-shaking {
+    animation: none;
+  }
+}

@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookings Naming Me — Campus Reservation Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-links a.active {
+      font-weight: 700;
+      border-bottom: 2px solid white;
+      padding-bottom: 2px;
+    }
+
+    .booking-card {
+      border: 1px solid var(--border);
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+      position: relative;
+    }
+    .booking-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+    }
+
+    .booking-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .meta-label {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .meta-value {
+      color: var(--text);
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    /* Modal Backdrop & Dialog */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-backdrop.hidden {
+      display: none !important;
+    }
+
+    .modal-dialog {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+      padding: 1.5rem;
+      animation: modalSlide 0.2s ease-out;
+    }
+
+    @keyframes modalSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .badge-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <h2>KLE Tech (Team 16) � Reservation Engine</h2>
+      <div class="nav-links">
+        <a href="resources.html">Resources</a>
+        <a href="bookings.html">My Bookings</a>
+        <a href="named-me.html" class="active">Bookings Naming Me</a>
+
+        <span class="user-info" id="user-info">Loading user...</span>
+        <a href="#" id="nav-logout">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Page Header -->
+    <div class="flex-between mb-2" style="flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text);">Bookings Naming Me</h1>
+        <p class="text-muted text-sm">Review bookings where students or colleagues have referenced you as faculty guide or coordinator.</p>
+      </div>
+      <div class="flex gap-1" style="align-items: center;">
+        <span id="results-count" class="text-muted text-sm"></span>
+        <button type="button" id="btn-refresh" class="btn btn-sm" style="background: white; border: 1px solid var(--border); color: var(--text);">
+          ↻ Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters & Action Bar -->
+    <div class="card" style="padding: 0.75rem 1.25rem; margin-bottom: 1.25rem;">
+      <div class="flex-between" style="flex-wrap: wrap; gap: 0.75rem;">
+        <div class="flex gap-1" style="align-items: center;">
+          <label for="filter-status" class="text-sm text-muted" style="font-weight: 600; white-space: nowrap;">Filter Status:</label>
+          <select id="filter-status" style="padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem; background: white; cursor: pointer;">
+            <option value="all">All Referenced Bookings</option>
+            <option value="confirmed">Confirmed Only</option>
+            <option value="cancelled">Cancelled Only</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bookings List Container -->
+    <div id="bookings-list" class="grid" style="grid-template-columns: 1fr; gap: 1rem;">
+      <div class="text-center text-muted" style="padding: 3rem;">Loading referenced bookings...</div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div id="pagination-container" class="mt-2"></div>
+  </main>
+
+  <!-- Cancellation Modal Dialog -->
+  <div id="cancel-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="flex-between mb-1">
+        <h3 id="modal-title" style="margin-bottom: 0; color: var(--danger); font-size: 1.2rem;">Cancel Endorsed Reservation</h3>
+        <button type="button" id="modal-close-btn" aria-label="Close modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+      </div>
+      <p class="text-sm text-muted mb-2" id="modal-booking-summary">
+        As the referenced faculty guide or coordinator, you can cancel this booking. Please state your reason.
+      </p>
+
+      <form id="cancel-form">
+        <input type="hidden" id="cancel-booking-id" value="">
+        <div class="form-group">
+          <label for="cancel-reason">Reason for Cancellation <span style="color: var(--danger);">*</span></label>
+          <textarea id="cancel-reason" rows="3" required placeholder="e.g. Activity not authorized, slot scheduling conflict, faculty guidance retracted..." style="resize: vertical;"></textarea>
+          <span class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.25rem;">A cancellation reason is required for administrative auditing.</span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn" id="modal-cancel-btn" style="background: var(--border); color: var(--text);">Keep Booking</button>
+          <button type="submit" class="btn btn-danger" id="modal-confirm-btn">Confirm Cancellation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let currentUser = null;
+    let currentPage = 1;
+    const pageSize = 20;
+    let currentRawData = { items: [], total: 0, page: 1, page_size: 20 };
+    let activeFilter = 'all';
+
+    // Toast Notification helper
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // HTML escape helper
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Role display formatter
+    function formatRoleDisplay(user) {
+      if (!user) return '';
+      if (user.is_cr) {
+        return 'Student (CR)';
+      }
+      const roleMap = {
+        student: 'Student',
+        faculty: 'Faculty',
+        lab_instructor: 'Lab Instructor',
+        hod: 'HOD'
+      };
+      const role = roleMap[user.role] || user.role;
+      return user.department ? `${role} · ${user.department}` : role;
+    }
+
+    // Format ISO date/time for display
+    function formatDateTime(isoString) {
+      if (!isoString) return '';
+      try {
+        const d = new Date(isoString);
+        return d.toLocaleString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return isoString;
+      }
+    }
+
+    // Authentication Check on Load
+    async function checkAuth() {
+      try {
+        const response = await fetch('/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.status === 401 || !response.ok) {
+          window.location.href = 'index.html';
+          return null;
+        }
+
+        const user = await response.json();
+        currentUser = user;
+
+        // Display user in navigation
+        const userInfoEl = document.getElementById('user-info');
+        if (userInfoEl) {
+          userInfoEl.textContent = `${user.name} (${formatRoleDisplay(user)})`;
+        }
+
+        return user;
+      } catch (err) {
+        console.error('Authentication verification error:', err);
+        window.location.href = 'index.html';
+        return null;
+      }
+    }
+
+    // Logout Handler
+    async function handleLogout(e) {
+      if (e) e.preventDefault();
+      try {
+        await fetch('/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch (err) {
+        console.error('Logout error:', err);
+      } finally {
+        window.location.href = 'index.html';
+      }
+    }
+
+    // Fetch and render bookings naming me
+    async function loadBookings(page = 1) {
+      currentPage = page;
+      const listContainer = document.getElementById('bookings-list');
+      listContainer.innerHTML = '<div class="text-center text-muted" style="padding: 3rem;">Loading referenced bookings...</div>';
+
+      try {
+        const res = await fetch(`/bookings/named-me?page=${currentPage}&page_size=${pageSize}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (res.status === 401) {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch bookings (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        currentRawData = data;
+        renderBookings();
+        renderPagination(data.total || 0, data.page || 1, data.page_size || pageSize);
+      } catch (err) {
+        console.error('Error fetching bookings naming me:', err);
+        listContainer.innerHTML = `
+          <div class="card text-center" style="padding: 2.5rem; color: var(--danger); border-color: #fca5a5;">
+            <h3>Unable to load referenced bookings</h3>
+            <p class="text-muted text-sm mt-1">There was a problem communicating with the server. Please try again.</p>
+            <button type="button" class="btn btn-primary mt-2" onclick="loadBookings(${currentPage})">Retry</button>
+          </div>
+        `;
+        showToast('Error loading referenced bookings', 'error');
+      }
+    }
+
+    // Render list based on current data and active filter
+    function renderBookings() {
+      const container = document.getElementById('bookings-list');
+      const countEl = document.getElementById('results-count');
+      const allItems = currentRawData.items || [];
+      const total = currentRawData.total || 0;
+
+      // Filter by active status if selected
+      const filteredItems = allItems.filter(b => {
+        if (activeFilter === 'confirmed') return b.status === 'confirmed';
+        if (activeFilter === 'cancelled') return b.status === 'cancelled';
+        return true;
+      });
+
+      // Update count header
+      if (countEl) {
+        if (total === 0) {
+          countEl.textContent = '0 referenced bookings';
+        } else {
+          const startIdx = (currentRawData.page - 1) * currentRawData.page_size + 1;
+          const endIdx = Math.min(startIdx + allItems.length - 1, total);
+          countEl.textContent = `Showing ${startIdx}–${endIdx} of ${total} referenced bookings`;
+        }
+      }
+
+      // Empty state (matches exact requirement message)
+      if (allItems.length === 0) {
+        container.innerHTML = `
+          <div class="card empty">
+            <div class="empty-icon">📋</div>
+            <h3 style="margin-bottom: 0.5rem; color: var(--text);">No Bookings Found</h3>
+            <p class="text-muted">No bookings reference you as faculty guide or coordinator</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Filter empty state
+      if (filteredItems.length === 0) {
+        container.innerHTML = `
+          <div class="card empty">
+            <div class="empty-icon">🔍</div>
+            <h3 style="margin-bottom: 0.5rem; color: var(--text);">No ${escapeHtml(activeFilter)} bookings on this page</h3>
+            <p class="text-muted" style="margin-bottom: 1.25rem;">Try changing your filter to view all referenced bookings.</p>
+            <button type="button" class="btn btn-sm" style="background: white; border: 1px solid var(--border);" onclick="resetFilter()">Show All</button>
+          </div>
+        `;
+        return;
+      }
+
+      // Render items
+      container.innerHTML = filteredItems.map(b => {
+        const isConfirmed = b.status === 'confirmed';
+        const isCancelled = b.status === 'cancelled';
+
+        // Badges
+        const statusBadgeClass = isConfirmed ? 'badge-confirmed' : (isCancelled ? 'badge-cancelled' : 'badge-pending');
+        const statusText = isConfirmed ? 'Confirmed' : (isCancelled ? 'Cancelled' : b.status);
+
+        let sourceBadgeClass = 'badge-user';
+        if (b.source === 'timetable') sourceBadgeClass = 'badge-timetable';
+        else if (b.source === 'block') sourceBadgeClass = 'badge-block';
+        const sourceText = b.source.toUpperCase();
+
+        const resourceTitle = b.resource_name || `Resource #${b.resource_id}`;
+        const buildingTitle = b.resource_building || 'Campus Shared';
+
+        return `
+          <div class="card booking-card" id="booking-card-${b.id}">
+            <div class="flex-between" style="flex-wrap: wrap; gap: 0.75rem; align-items: flex-start;">
+              <div>
+                <div class="badge-box" style="margin-bottom: 0.35rem; flex-wrap: wrap;">
+                  <h3 style="margin-bottom: 0; font-size: 1.15rem; color: var(--text); display: inline-block;">
+                    ${escapeHtml(resourceTitle)}
+                  </h3>
+                  <span class="badge ${statusBadgeClass}">${escapeHtml(statusText)}</span>
+                  <span class="badge ${sourceBadgeClass}">${escapeHtml(sourceText)}</span>
+                </div>
+                <div class="text-muted text-sm">
+                  <span>🏢 ${escapeHtml(buildingTitle)}</span>
+                  <span style="margin: 0 0.35rem;">&bull;</span>
+                  <span>Booking #${b.id}</span>
+                </div>
+              </div>
+
+              <div>
+                ${isConfirmed ? `
+                  <button type="button"
+                          class="btn btn-sm btn-danger btn-cancel-trigger"
+                          data-id="${b.id}"
+                          data-resource="${escapeHtml(resourceTitle)}"
+                          data-date="${escapeHtml(b.date)}"
+                          data-time="${escapeHtml(b.start)} – ${escapeHtml(b.end)}"
+                          onclick="openCancelModal(${b.id}, '${escapeHtml(resourceTitle).replace(/'/g, "\\'")}', '${escapeHtml(b.date)}', '${escapeHtml(b.start)} – ${escapeHtml(b.end)}')">
+                    Cancel Booking
+                  </button>
+                ` : `
+                  <span class="text-muted text-sm" style="font-weight: 500; font-style: italic;">Cancelled</span>
+                `}
+              </div>
+            </div>
+
+            <!-- Booking details grid -->
+            <div class="booking-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Booker (Applicant)</span>
+                <span class="meta-value" style="color: var(--primary); font-weight: 600;">
+                  👤 User ID: #${b.user_id}
+                </span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Date &amp; Time Slot</span>
+                <span class="meta-value">
+                  📅 ${escapeHtml(b.date)} &nbsp; 🕒 ${escapeHtml(b.start)} – ${escapeHtml(b.end)}
+                </span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Stated Purpose</span>
+                <span class="meta-value">
+                  ${b.purpose ? escapeHtml(b.purpose) : '<span class="text-muted" style="font-style: italic;">No purpose specified</span>'}
+                </span>
+              </div>
+
+              ${b.course ? `
+                <div class="meta-item">
+                  <span class="meta-label">Course / Class</span>
+                  <span class="meta-value">📚 ${escapeHtml(b.course)}</span>
+                </div>
+              ` : ''}
+
+              <div class="meta-item">
+                <span class="meta-label">Requested On</span>
+                <span class="meta-value text-muted" style="font-size: 0.8rem;">
+                  ${b.created_at ? formatDateTime(b.created_at) : 'N/A'}
+                </span>
+              </div>
+
+              ${isCancelled ? `
+                <div class="meta-item" style="grid-column: 1 / -1; background: #fef2f2; padding: 0.6rem 0.8rem; border-radius: 6px; border: 1px solid #fee2e2;">
+                  <span class="meta-label" style="color: var(--danger);">Cancellation Reason</span>
+                  <span class="meta-value" style="color: #991b1b; font-weight: 500;">
+                    ${b.cancel_reason ? escapeHtml(b.cancel_reason) : 'No reason recorded'}
+                  </span>
+                  ${b.cancelled_at ? `
+                    <span class="text-muted" style="font-size: 0.75rem; margin-top: 0.2rem; display: block;">
+                      Cancelled on ${formatDateTime(b.cancelled_at)}
+                    </span>
+                  ` : ''}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Reset status filter
+    function resetFilter() {
+      const select = document.getElementById('filter-status');
+      if (select) select.value = 'all';
+      activeFilter = 'all';
+      renderBookings();
+    }
+
+    // Pagination controls rendering
+    function renderPagination(total, page, pageSize) {
+      const container = document.getElementById('pagination-container');
+      if (!container) return;
+
+      const totalPages = Math.ceil(total / pageSize);
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="pagination">';
+
+      // Prev button
+      html += `<button type="button" ${page <= 1 ? 'disabled' : ''} onclick="loadBookings(${page - 1})" aria-label="Previous page">&laquo; Prev</button>`;
+
+      // Page numbers with windowing
+      const maxButtons = 5;
+      let startPage = Math.max(1, page - 2);
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      if (endPage - startPage < maxButtons - 1) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+      }
+
+      if (startPage > 1) {
+        html += `<button type="button" onclick="loadBookings(1)">1</button>`;
+        if (startPage > 2) {
+          html += `<button type="button" disabled style="border:none; background:transparent;">...</button>`;
+        }
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        html += `<button type="button" class="${p === page ? 'active' : ''}" onclick="loadBookings(${p})" aria-label="Page ${p}" ${p === page ? 'aria-current="page"' : ''}>${p}</button>`;
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          html += `<button type="button" disabled style="border:none; background:transparent;">...</button>`;
+        }
+        html += `<button type="button" onclick="loadBookings(${totalPages})">${totalPages}</button>`;
+      }
+
+      // Next button
+      html += `<button type="button" ${page >= totalPages ? 'disabled' : ''} onclick="loadBookings(${page + 1})" aria-label="Next page">Next &raquo;</button>`;
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    // Cancel modal open
+    function openCancelModal(bookingId, resourceName, date, timeSlot) {
+      const modal = document.getElementById('cancel-modal');
+      const bookingIdInput = document.getElementById('cancel-booking-id');
+      const reasonInput = document.getElementById('cancel-reason');
+      const summaryEl = document.getElementById('modal-booking-summary');
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+
+      if (!modal || !bookingIdInput || !reasonInput) return;
+
+      bookingIdInput.value = bookingId;
+      reasonInput.value = '';
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Cancellation';
+      }
+
+      if (summaryEl) {
+        summaryEl.innerHTML = `Cancelling booking <strong>#${escapeHtml(bookingId)}</strong> for <strong>${escapeHtml(resourceName)}</strong> on <strong>${escapeHtml(date)} (${escapeHtml(timeSlot)})</strong> as the referenced faculty. Please provide a mandatory cancellation reason.`;
+      }
+
+      modal.classList.remove('hidden');
+      setTimeout(() => reasonInput.focus(), 50);
+    }
+
+    // Cancel modal close
+    function closeCancelModal() {
+      const modal = document.getElementById('cancel-modal');
+      const reasonInput = document.getElementById('cancel-reason');
+      const bookingIdInput = document.getElementById('cancel-booking-id');
+
+      if (modal) modal.classList.add('hidden');
+      if (reasonInput) reasonInput.value = '';
+      if (bookingIdInput) bookingIdInput.value = '';
+    }
+
+    // Cancel form submit handler
+    async function handleCancelSubmit(e) {
+      e.preventDefault();
+
+      const bookingId = document.getElementById('cancel-booking-id').value;
+      const reason = document.getElementById('cancel-reason').value.trim();
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+
+      if (!bookingId) {
+        showToast('Invalid booking reference', 'error');
+        return;
+      }
+
+      if (!reason) {
+        showToast('Please provide a reason for cancellation', 'error');
+        document.getElementById('cancel-reason').focus();
+        return;
+      }
+
+      if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Cancelling...';
+      }
+
+      try {
+        const response = await fetch(`/bookings/${encodeURIComponent(bookingId)}/cancel`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ reason: reason })
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (response.ok) {
+          closeCancelModal();
+          showToast(`Booking #${bookingId} cancelled successfully`, 'success');
+          // Reload list
+          await loadBookings(currentPage);
+        } else if (response.status === 400) {
+          const msg = (data && data.detail) ? data.detail : 'Booking is already cancelled';
+          showToast(msg, 'error');
+          await loadBookings(currentPage);
+          closeCancelModal();
+        } else if (response.status === 403) {
+          const msg = (data && data.detail) ? data.detail : 'Not authorized to cancel this booking';
+          showToast(msg, 'error');
+          closeCancelModal();
+        } else if (response.status === 404) {
+          showToast('Booking not found', 'error');
+          closeCancelModal();
+        } else {
+          let errDetail = 'Failed to cancel booking';
+          if (data && data.detail) {
+            errDetail = Array.isArray(data.detail) ? data.detail.map(d => d.msg).join(', ') : data.detail;
+          }
+          showToast(errDetail, 'error');
+        }
+      } catch (err) {
+        console.error('Cancel request network error:', err);
+        showToast('Network error while cancelling booking. Please try again.', 'error');
+      } finally {
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Confirm Cancellation';
+        }
+      }
+    }
+
+    // Modal click outside & keyboard event listeners
+    function initModalEvents() {
+      const modal = document.getElementById('cancel-modal');
+      const closeBtn = document.getElementById('modal-close-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+      const form = document.getElementById('cancel-form');
+
+      if (closeBtn) closeBtn.addEventListener('click', closeCancelModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeCancelModal);
+      if (form) form.addEventListener('submit', handleCancelSubmit);
+
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeCancelModal();
+          }
+        });
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+          closeCancelModal();
+        }
+      });
+    }
+
+    // DOM Ready initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Authenticate user
+      const user = await checkAuth();
+      if (!user) return; // Handled redirect in checkAuth
+
+      // 2. Setup navigation events
+      const logoutBtn = document.getElementById('nav-logout');
+      if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+      // 3. Setup refresh and filter events
+      const refreshBtn = document.getElementById('btn-refresh');
+      if (refreshBtn) refreshBtn.addEventListener('click', () => loadBookings(currentPage));
+
+      const filterSelect = document.getElementById('filter-status');
+      if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+          activeFilter = e.target.value;
+          renderBookings();
+        });
+      }
+
+      // 4. Setup modal events
+      initModalEvents();
+
+      // 5. Load bookings naming me on page 1
+      await loadBookings(1);
+    });
+  </script>
+</body>
+</html>

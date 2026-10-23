@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Book shared rooms and equipment without the double-booking headaches.">
+  <title>SyncSpace — Reservation &amp; Scheduling Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap">
+  <link rel="stylesheet" href="/static/style.css?v=v26">
+  <link rel="stylesheet" href="/static/polish.css?v=1">
+</head>
+<body>
+
+  <header>
+    <!-- Brand / logo -->
+    <div class="header-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="5" width="17" height="15.5" rx="3"/>
+          <path d="M3.5 10h17M8 3v4M16 3v4"/>
+          <path d="M9 15.2l2.1 2.1 4-4"/>
+        </svg>
+      </span>
+      <h1>SyncSpace</h1>
+    </div>
+
+    <!-- Right-side account bar -->
+    <div class="account-bar">
+      <!-- Admin pending-users badge -->
+      <button id="pending-users-badge" type="button" class="badge-btn" hidden>
+        <span class="badge-label">Pending</span>
+        <span id="pending-users-count" class="badge-count">0</span>
+      </button>
+
+      <!-- Theme toggle -->
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme"></button>
+
+      <!-- Account menu: initial avatar opens name/email + log out -->
+      <div class="account-menu">
+        <button id="account-avatar" class="user-avatar" type="button"
+                aria-haspopup="menu" aria-expanded="false" aria-controls="account-dropdown"
+                aria-label="Account menu"></button>
+        <div id="account-dropdown" class="account-dropdown" role="menu" hidden>
+          <div class="account-dropdown-info">
+            <span id="account-name" class="account-name"></span>
+            <span id="account-email" class="account-email"></span>
+            <!-- Members: "Faculty · 3/15 bookings · up to 60 days ahead" -->
+            <span id="account-group-summary" class="account-email" hidden></span>
+          </div>
+          <button id="calendar-feed-btn" type="button" class="nav-logout-btn" role="menuitem">Calendar feed</button>
+          <button id="logout-btn" type="button" class="nav-logout-btn" role="menuitem">Log out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Access gate: pending approval -->
+  <section id="pending-approval-screen" class="access-screen" hidden>
+    <div class="panel">
+      <h2>Waiting for admin approval</h2>
+      <p>
+        Your account has been created and your email is verified, but an
+        administrator still needs to approve you before you can use the app.
+        Check back later, or reach out to the admin directly.
+      </p>
+      <button id="pending-screen-logout-btn" type="button" class="secondary">Log out</button>
+    </div>
+  </section>
+
+  <!-- Access gate: rejected -->
+  <section id="rejected-screen" class="access-screen" hidden>
+    <div class="panel">
+      <h2>Access request denied</h2>
+      <p>
+        An administrator reviewed your account request and did not approve
+        it. If you believe this is a mistake, contact the admin directly.
+      </p>
+      <button id="rejected-screen-logout-btn" type="button" class="secondary">Log out</button>
+    </div>
+  </section>
+
+  <!-- ═══════════════ Main application ═══════════════ -->
+  <main id="app-main" hidden>
+
+    <!-- ── Toolbar: resource + date selection ── -->
+    <section class="app-toolbar" id="controls-panel">
+      <div class="controls-row">
+        <label>
+          Resource
+          <select id="resource-select"></select>
+        </label>
+        <label>
+          Date
+          <input type="date" id="date-picker">
+        </label>
+      </div>
+      <p class="hint" id="empty-hint"></p>
+      <!-- Day timeline (one resource, one day) | Resource board (all resources x time) -->
+      <div class="view-switch" role="group" aria-label="View">
+        <button type="button" id="view-day-btn" class="view-switch-btn is-active" aria-pressed="true">Day timeline</button>
+        <button type="button" id="view-board-btn" class="view-switch-btn" aria-pressed="false">Resource board</button>
+      </div>
+    </section>
+
+    <!-- ── Hero: full-width day timeline ── -->
+    <section class="panel hero-panel" id="timeline-panel">
+      <h2>Day timeline <span id="timeline-tz" class="timeline-tz"></span></h2>
+      <p class="hint" id="resource-hours-hint"></p>
+      <div id="timeline"></div>
+    </section>
+
+    <!-- ── Resource board: rows = resources, x = time (shown by the view switch) ── -->
+    <section class="panel hero-panel board-panel" id="board-panel" hidden>
+      <div class="board-toolbar">
+        <button type="button" id="board-prev" class="secondary" aria-label="Previous">‹</button>
+        <strong id="board-range-label"></strong>
+        <button type="button" id="board-next" class="secondary" aria-label="Next">›</button>
+        <div class="view-switch" role="group" aria-label="Board range">
+          <button type="button" id="board-mode-day" class="view-switch-btn is-active" aria-pressed="true">Day</button>
+          <button type="button" id="board-mode-week" class="view-switch-btn" aria-pressed="false">Week</button>
+        </div>
+        <label class="board-filter">
+          Type
+          <select id="board-type"><option value="">All types</option></select>
+        </label>
+      </div>
+      <p class="board-legend hint">
+        <span class="board-key is-mine"></span>mine
+        <span class="board-key is-confirmed"></span>confirmed
+        <span class="board-key is-pending"></span>pending
+        <span class="board-key is-busy"></span>busy
+        <span class="board-key is-load"></span>units in use
+        <span class="board-key is-blackout"></span>blackout
+        <span class="board-key is-closed"></span>closed
+      </p>
+      <div id="board" class="board-scroll"></div>
+      <div id="board-popover" class="board-popover" hidden></div>
+    </section>
+
+    <!-- ── Booking confirmation drawer (fixed overlay) ──
+         JS controls visibility via #booking-panel[hidden].
+         CSS repositions as a slide-up drawer.                -->
+    <div class="booking-drawer-backdrop" aria-hidden="true"></div>
+    <section class="booking-drawer" id="booking-panel"
+             aria-modal="true" aria-label="Book this slot" hidden>
+      <div class="booking-drawer-handle" aria-hidden="true"></div>
+      <div class="booking-drawer-inner">
+        <div class="booking-drawer-header">
+          <div class="booking-drawer-info">
+            <p class="booking-drawer-eyebrow">Confirm reservation</p>
+            <p id="booking-slot-label" class="booking-slot-label"></p>
+          </div>
+          <button id="cancel-booking-panel-btn" type="button" aria-label="Cancel">✕</button>
+        </div>
+        <div class="controls-row">
+          <label>
+            Start time
+            <input type="time" id="booking-start-time" step="900">
+          </label>
+          <label>
+            Duration
+            <select id="booking-duration"></select>
+          </label>
+          <label>
+            <!-- "People" for whole resources, "Units" for unit pools (set by app.js) -->
+            <span id="booking-party-size-label">People</span>
+            <input type="number" id="booking-party-size" min="1" value="1">
+          </label>
+          <label>
+            Repeat
+            <select id="repeat-frequency">
+              <option value="">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </label>
+        </div>
+        <!-- Shown only when Repeat is Daily/Weekly (toggled by app.js) -->
+        <div id="repeat-options" style="display:none;">
+          <div id="repeat-weekdays" style="display:flex;flex-wrap:wrap;gap:var(--sp-3);margin-bottom:var(--sp-3);">
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="1"> Mon</label>
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="2"> Tue</label>
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="3"> Wed</label>
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="4"> Thu</label>
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="5"> Fri</label>
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="6"> Sat</label>
+            <label class="checkbox-label"><input type="checkbox" data-repeat-weekday="7"> Sun</label>
+          </div>
+          <div class="controls-row">
+            <label>
+              <span id="repeat-interval-label">Every N weeks</span>
+              <select id="repeat-interval">
+                <option value="1">1</option><option value="2">2</option>
+                <option value="3">3</option><option value="4">4</option>
+              </select>
+            </label>
+            <label>
+              Ends
+              <select id="repeat-end-kind">
+                <option value="count">After N occurrences</option>
+                <option value="until">On a date</option>
+              </select>
+            </label>
+            <label id="repeat-count-label">
+              Occurrences
+              <input type="number" id="repeat-count" min="1" max="26" value="4">
+            </label>
+            <label id="repeat-until-label" style="display:none;">
+              End date
+              <input type="date" id="repeat-until">
+            </label>
+            <label>
+              Mode
+              <select id="repeat-mode">
+                <option value="all_or_nothing">Book all or nothing</option>
+                <option value="skip_conflicts">Skip conflicts</option>
+              </select>
+            </label>
+          </div>
+          <button type="button" id="repeat-preview-btn" class="secondary">Preview</button>
+          <ul id="repeat-preview-list"></ul>
+        </div>
+        <div class="booking-drawer-actions">
+          <button id="confirm-booking-btn">Confirm booking</button>
+        </div>
+        <div id="booking-message" class="message"></div>
+        <button type="button" id="join-waitlist-btn" class="secondary" hidden>Join waitlist for this time</button>
+        <p class="hint" id="booking-alternatives-title" hidden>Try one of these instead:</p>
+        <ul id="booking-alternatives"></ul>
+      </div>
+    </section>
+
+    <!-- ── Secondary section: tab bar + tab panes ── -->
+    <div class="app-tabs-section">
+      <nav class="app-tabs" role="tablist" aria-label="Secondary panels">
+        <button class="tab-btn is-active tab-member-only" role="tab"
+                id="tab-reservations" data-tab="reservations" aria-selected="true">
+          My Reservations
+        </button>
+        <button class="tab-btn tab-member-only" role="tab"
+                id="tab-find" data-tab="find" aria-selected="false">
+          Find a slot
+        </button>
+        <button class="tab-btn tab-admin-only" role="tab"
+                id="tab-approvals" data-tab="approvals" aria-selected="false">
+          Approvals
+        </button>
+        <!-- Admin tab: revealed by CSS :has() when app.js shows #add-resource-panel -->
+        <button class="tab-btn tab-admin-only" role="tab"
+                id="tab-admin" data-tab="admin" aria-selected="false">
+          Admin
+        </button>
+      </nav>
+
+      <!-- Pane: My Reservations -->
+      <div class="tab-pane is-active tab-member-only" id="pane-reservations"
+           role="tabpanel" aria-labelledby="tab-reservations">
+        <section id="my-reservations-panel">
+          <ul id="my-reservations-list"></ul>
+        </section>
+        <section id="my-waitlist-panel" class="admin-subsection">
+          <h3 class="subsection-title">My waitlist</h3>
+          <ul id="my-waitlist-list"></ul>
+        </section>
+      </div>
+
+      <!-- Pane: Find a slot (member-only) -->
+      <div class="tab-pane tab-member-only" id="pane-find"
+           role="tabpanel" aria-labelledby="tab-find">
+        <section id="find-slot-panel">
+          <p class="hint">Get the best available times, ranked by how close they are to what you asked for.</p>
+          <form id="find-slot-form" class="stacked-form">
+            <div class="field">
+              <label>Search for</label>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--sp-3);">
+                <label class="checkbox-label"><input type="radio" name="find-mode" id="find-mode-single" value="single" checked> One resource</label>
+                <label class="checkbox-label"><input type="radio" name="find-mode" id="find-mode-multi" value="multi"> Several resources together</label>
+              </div>
+            </div>
+            <div id="find-single-fields">
+              <div class="field">
+                <label for="find-what">Resource type or specific resource</label>
+                <select id="find-what" required></select>
+              </div>
+              <div class="field">
+                <label for="find-attendees">Attendees</label>
+                <input type="number" id="find-attendees" min="1" value="1" required>
+              </div>
+            </div>
+            <!-- "Several resources together": common free slots, booked as one bundle -->
+            <div id="find-multi-fields" hidden>
+              <div class="field">
+                <label for="find-resources">Resources (pick 2–5; Ctrl/Cmd-click)</label>
+                <select id="find-resources" multiple size="5"></select>
+              </div>
+              <div class="field">
+                <label for="find-party-size">Party size (people / units per resource)</label>
+                <input type="number" id="find-party-size" min="1" value="1">
+              </div>
+              <div class="field">
+                <label for="find-participants">Participants who must also be free (optional)</label>
+                <select id="find-participants" multiple size="4"></select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="find-duration">Duration (minutes)</label>
+              <input type="number" id="find-duration" min="15" step="15" value="60" required>
+            </div>
+            <div class="field">
+              <label for="find-from">From</label>
+              <input type="date" id="find-from" required>
+            </div>
+            <div class="field">
+              <label for="find-to">To (max 14 days)</label>
+              <input type="date" id="find-to" required>
+            </div>
+            <div class="field">
+              <label for="find-time">Preferred start time (optional)</label>
+              <input type="time" id="find-time" step="900">
+            </div>
+            <button type="submit">Find slots</button>
+          </form>
+          <div id="find-slot-message" class="message"></div>
+          <ul id="find-slot-results"></ul>
+        </section>
+      </div>
+
+      <!-- Pane: Approvals
+           #pending-approvals-panel shown/hidden by app.js (admin-only).
+           .tab-empty-state shown by CSS when panel is hidden.           -->
+      <div class="tab-pane" id="pane-approvals"
+           role="tabpanel" aria-labelledby="tab-approvals">
+        <section id="pending-approvals-panel" hidden>
+          <ul id="pending-approvals-list"></ul>
+          <div id="pending-approvals-message" class="message"></div>
+        </section>
+        <p class="tab-empty-state">No pending reservation approvals.</p>
+      </div>
+
+      <!-- Pane: Admin
+           Both sections inside are shown/hidden by app.js (admin-only).  -->
+      <div class="tab-pane" id="pane-admin"
+           role="tabpanel" aria-labelledby="tab-admin">
+        <section id="pending-users-panel" class="admin-subsection" hidden>
+          <details class="admin-details" id="pending-users-details" open>
+            <summary class="subsection-title">Pending user approvals <span class="admin-summary" id="pending-users-summary"></span></summary>
+          <p class="hint">People who signed up and are waiting for you to approve or deny their access.</p>
+          <ul id="pending-users-list"></ul>
+          <div id="pending-users-message" class="message"></div>
+          </details>
+        </section>
+        <section id="add-resource-panel" class="admin-subsection" hidden>
+          <details class="admin-details" id="add-resource-details">
+            <summary class="subsection-title">Add resource <span class="admin-summary" id="add-resource-summary"></span></summary>
+          <p class="hint">Bookings need your approval unless the resource is set to auto-approve.</p>
+          <form id="add-resource-form" class="stacked-form">
+            <div class="field">
+              <label for="new-resource-name">Name</label>
+              <input type="text" id="new-resource-name" placeholder="Conference Room A" required>
+            </div>
+            <div class="field">
+              <label for="new-resource-type">Type</label>
+              <input type="text" id="new-resource-type" placeholder="room, equipment, …" required>
+            </div>
+            <div class="field">
+              <label for="new-resource-capacity">Capacity</label>
+              <input type="number" id="new-resource-capacity" value="1" min="1" required>
+            </div>
+            <div class="field">
+              <label for="new-resource-booking-mode">Booking mode</label>
+              <select id="new-resource-booking-mode" data-field="booking_mode">
+                <option value="units">Units (shared pool)</option>
+                <option value="whole">Whole resource</option>
+              </select>
+              <p class="hint">Units: a pool of identical units (lab PCs, seats); each booking takes as many as it needs.<br>
+                Whole: one booking takes the whole resource (rooms, halls); capacity is the most people it fits.</p>
+            </div>
+            <div class="field">
+              <label for="new-resource-description">Description</label>
+              <input type="text" id="new-resource-description" data-field="description" placeholder="Optional">
+            </div>
+            <div class="field">
+              <label for="new-resource-location">Location</label>
+              <input type="text" id="new-resource-location" data-field="location" placeholder="Optional, e.g. Block B, 2nd floor">
+            </div>
+            <div class="field">
+              <label for="new-resource-timezone">Timezone</label>
+              <input type="text" id="new-resource-timezone" data-field="timezone" placeholder="Asia/Kolkata (default)">
+            </div>
+            <div class="field">
+              <label for="new-resource-open">Opens at</label>
+              <input type="time" id="new-resource-open" data-field="open_time" value="09:00" required>
+            </div>
+            <div class="field">
+              <label for="new-resource-close">Closes at</label>
+              <input type="time" id="new-resource-close" data-field="close_time" value="18:00" required>
+            </div>
+            <div class="field">
+              <label>Open on</label>
+              <div class="weekday-checkboxes" style="display:flex;flex-wrap:wrap;gap:var(--sp-3);">
+                <label class="checkbox-label"><input type="checkbox" data-weekday="1" checked> Mon</label>
+                <label class="checkbox-label"><input type="checkbox" data-weekday="2" checked> Tue</label>
+                <label class="checkbox-label"><input type="checkbox" data-weekday="3" checked> Wed</label>
+                <label class="checkbox-label"><input type="checkbox" data-weekday="4" checked> Thu</label>
+                <label class="checkbox-label"><input type="checkbox" data-weekday="5" checked> Fri</label>
+                <label class="checkbox-label"><input type="checkbox" data-weekday="6" checked> Sat</label>
+                <label class="checkbox-label"><input type="checkbox" data-weekday="7" checked> Sun</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="new-resource-min">Min duration (minutes)</label>
+              <input type="number" id="new-resource-min" data-field="min_duration_minutes" value="30" min="1" required>
+            </div>
+            <div class="field">
+              <label for="new-resource-max">Max duration (minutes)</label>
+              <input type="number" id="new-resource-max" data-field="max_duration_minutes" value="480" min="1" required>
+            </div>
+            <label class="checkbox-label"><input type="checkbox" data-field="auto_approve"> Auto-approve bookings (skip admin approval)</label>
+            <label class="checkbox-label"><input type="checkbox" data-field="requires_checkin"> Requires check-in (bookings nobody checks in to are released)</label>
+            <div class="field">
+              <label for="new-resource-grace">Check-in grace (minutes after the start, 5–60)</label>
+              <input type="number" id="new-resource-grace" data-field="checkin_grace_minutes" value="15" min="5" max="60" required>
+            </div>
+            <button type="submit">Add resource</button>
+          </form>
+          <div id="add-resource-message" class="message"></div>
+          </details>
+        </section>
+        <section id="jobs-panel" class="admin-subsection" hidden>
+          <details class="admin-details" id="jobs-details">
+            <summary class="subsection-title">Background jobs <span class="admin-summary" id="jobs-summary"></span></summary>
+          <p class="hint" id="jobs-status-text"></p>
+          <button type="button" id="jobs-run-now-btn" class="secondary">Run now</button>
+          <div id="jobs-message" class="message"></div>
+          </details>
+        </section>
+        <section id="manage-resources-panel" class="admin-subsection" hidden>
+          <details class="admin-details" id="manage-resources-details">
+            <summary class="subsection-title">Manage resources <span class="admin-summary" id="manage-resources-summary"></span></summary>
+          <p class="hint">Edit settings, activate/deactivate, and schedule maintenance blackouts. Inactive resources are hidden from members.</p>
+          <ul id="manage-resources-list"></ul>
+          <div id="manage-resources-message" class="message"></div>
+          </details>
+        </section>
+      </div>
+    </div>
+
+  </main>
+  <!-- ═══════════════ End main ═══════════════ -->
+
+  <!-- Chatbot FAB -->
+  <button id="chatbot-toggle" class="chatbot-toggle" type="button" aria-label="Open Reservation Assistant">
+    <svg class="chatbot-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M5 3h14a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H9.5l-4.3 3.4A.75.75 0 0 1 4 20.8V18.9A3 3 0 0 1 2 16V6a3 3 0 0 1 3-3z"/>
+    </svg>
+    <svg class="chatbot-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
+
+  <section id="chatbot-panel" class="chatbot-panel" aria-label="Reservation Assistant" hidden>
+    <div class="chatbot-header">
+      <h2>Reservation Assistant</h2>
+      <button id="chatbot-close" class="chatbot-close" type="button" aria-label="Close Reservation Assistant">✕</button>
+    </div>
+    <div id="chatbot-messages" class="chatbot-messages"></div>
+    <div id="chatbot-starters" class="chatbot-starters" aria-label="Starter questions"></div>
+    <form id="chatbot-form" class="chatbot-form">
+      <textarea
+        id="chatbot-input"
+        maxlength="1200"
+        rows="2"
+        placeholder="Ask about reservations, approvals, quotas, or the implementation"
+        aria-label="Message"
+      ></textarea>
+      <button id="chatbot-send" type="submit">Send</button>
+    </form>
+    <p id="chatbot-error" class="chatbot-error" aria-live="polite"></p>
+  </section>
+
+  <script src="/static/theme.js?v=v6"></script>
+  <script src="/static/app.js?v=v30"></script>
+  <script src="/static/motion.js?v=1"></script>
+  <script>
+    /* ─── Tab switching — pure presentation layer ───────────────────────
+       Does NOT modify any app.js wiring, fetch calls, or element IDs.
+       Manages the .is-active class on .tab-btn and .tab-pane elements.  */
+    (function () {
+      function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(function (btn) {
+          btn.classList.remove('is-active');
+          btn.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.tab-pane').forEach(function (pane) {
+          pane.classList.remove('is-active');
+        });
+        var btn = document.getElementById('tab-' + tabId);
+        var pane = document.getElementById('pane-' + tabId);
+        if (btn)  { btn.classList.add('is-active');  btn.setAttribute('aria-selected', 'true'); }
+        if (pane) { pane.classList.add('is-active'); }
+      }
+
+      window.switchTab = switchTab;
+
+      document.addEventListener('DOMContentLoaded', function () {
+        /* Wire tab button clicks */
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            switchTab(btn.getAttribute('data-tab'));
+          });
+        });
+
+        /* When admin badge is clicked: switch to admin tab, then scroll.
+           app.js also adds a scrollIntoView listener (harmless after tab switch). */
+        var badge = document.getElementById('pending-users-badge');
+        if (badge) {
+          badge.addEventListener('click', function () {
+            switchTab('admin');
+            setTimeout(function () {
+              var panel = document.getElementById('pending-users-panel');
+              if (panel && !panel.hidden) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 60);
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

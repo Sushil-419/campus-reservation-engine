@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Campus Reservation Engine</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .nav-links a.active {
+      font-weight: 700;
+      border-bottom: 2px solid white;
+      padding-bottom: 2px;
+    }
+
+    /* Stat Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+      border-left: 4px solid var(--primary);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .stat-card.success { border-left-color: var(--success); }
+    .stat-card.warning { border-left-color: var(--warning); }
+    .stat-card.danger { border-left-color: var(--danger); }
+
+    .stat-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stat-label {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* Admin Table */
+    .table-container {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    table.admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+    table.admin-table th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    table.admin-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    table.admin-table tr:hover {
+      background: #f8fafc;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+    .badge-confirmed { background: #dcfce7; color: #166534; }
+    .badge-cancelled { background: #fee2e2; color: #991b1b; }
+    .badge-role { background: #e0e7ff; color: #3730a3; font-size: 0.7rem; }
+
+    /* Modal Backdrop & Dialog */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-backdrop.hidden {
+      display: none !important;
+    }
+    .modal-dialog {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 520px;
+      padding: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Top Navigation Bar -->
+  <header>
+    <nav class="navbar">
+      <h2>KLE Tech (Team 16) — Reservation Engine</h2>
+      <div class="nav-links">
+        <a href="resources.html">Resources</a>
+        <a href="bookings.html">My Bookings</a>
+        <a href="named-me.html">Bookings Naming Me</a>
+        <a href="admin.html" id="nav-admin" class="active">Admin</a>
+        <span class="user-info" id="user-info">Loading user...</span>
+        <a href="#" id="nav-logout">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Page Header -->
+    <div class="flex-between mb-2" style="flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text);">Campus Administration</h1>
+        <p class="text-muted text-sm">System oversight, campus-wide reservation tracking, and administrative controls.</p>
+      </div>
+      <div class="flex gap-1" style="align-items: center;">
+        <span id="results-count" class="text-muted text-sm"></span>
+        <button class="btn btn-outline btn-sm" id="btn-refresh">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stat Metric Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total Facilities</span>
+        <span class="stat-val" id="stat-resources">368</span>
+      </div>
+      <div class="stat-card warning">
+        <span class="stat-label">Total Bookings</span>
+        <span class="stat-val" id="stat-total">-</span>
+      </div>
+      <div class="stat-card success">
+        <span class="stat-label">Active (Confirmed)</span>
+        <span class="stat-val" id="stat-active">-</span>
+      </div>
+      <div class="stat-card danger">
+        <span class="stat-label">Cancelled</span>
+        <span class="stat-val" id="stat-cancelled">-</span>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+      <div class="flex gap-1" style="flex-wrap: wrap; align-items: center;">
+        <div style="flex: 1; min-width: 220px;">
+          <input type="text" id="filter-search" placeholder="Search by booker, room, building, or purpose..." style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+        </div>
+        <div>
+          <select id="filter-status" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+            <option value="all">All Statuses</option>
+            <option value="confirmed" selected>Confirmed (Active)</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div>
+          <select id="filter-dept" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+            <option value="all">All Departments</option>
+            <option value="CSE">CSE</option>
+            <option value="EEE">EEE</option>
+            <option value="Civil">Civil</option>
+            <option value="Mechanical">Mechanical</option>
+            <option value="Architecture">Architecture</option>
+            <option value="Biotech">Biotech</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="btn-search">Filter</button>
+      </div>
+    </div>
+
+    <!-- Reservations Table -->
+    <div class="table-container mb-2">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Resource</th>
+            <th>Booked By</th>
+            <th>Date & Time</th>
+            <th>Purpose / Details</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bookings-tbody">
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+              Loading campus reservations...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="flex-between mb-2">
+      <button class="btn btn-outline btn-sm" id="btn-prev" disabled>← Previous</button>
+      <span class="text-sm text-muted" id="page-indicator">Page 1</span>
+      <button class="btn btn-outline btn-sm" id="btn-next" disabled>Next →</button>
+    </div>
+  </main>
+
+  <!-- Cancel Modal -->
+  <div id="cancel-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <h3 style="margin-bottom: 0.5rem;">Cancel Reservation</h3>
+      <p class="text-muted text-sm mb-2" id="cancel-modal-desc">Provide an administrative reason for cancellation.</p>
+      <div class="form-group mb-2">
+        <label for="cancel-reason" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Cancellation Reason</label>
+        <textarea id="cancel-reason" rows="3" placeholder="e.g. Facility needed for scheduled university examination" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;" required></textarea>
+      </div>
+      <div class="flex gap-1" style="justify-content: flex-end;">
+        <button type="button" class="btn btn-outline" id="btn-cancel-modal-close">Close</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-cancel">Confirm Cancellation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Modal -->
+  <div id="history-modal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <h3 style="margin-bottom: 0.5rem;">Booking Audit History</h3>
+      <div id="history-modal-content" style="max-height: 380px; overflow-y: auto; margin: 1rem 0;">
+        Loading audit entries...
+      </div>
+      <div class="flex" style="justify-content: flex-end;">
+        <button type="button" class="btn btn-outline" id="btn-history-modal-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let currentPage = 1;
+    let selectedBookingId = null;
+
+    function showToast(message, type = 'info', duration = 3500) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/auth/me', { credentials: 'include' });
+        if (!res.ok) throw new Error('Not authenticated');
+        currentUser = await res.json();
+        
+        if (currentUser.role !== 'hod') {
+          alert('Access denied: Campus Administration is restricted to HODs and Administrators.');
+          window.location.href = 'resources.html';
+          return false;
+        }
+
+        const userInfo = document.getElementById('user-info');
+        if (userInfo) {
+          userInfo.textContent = `${currentUser.name} (HOD Admin)`;
+        }
+        return true;
+      } catch (err) {
+        window.location.href = 'index.html';
+        return false;
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/bookings/stats', { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('stat-resources').textContent = data.total_resources || 368;
+        document.getElementById('stat-total').textContent = data.total_bookings || 0;
+        document.getElementById('stat-active').textContent = data.active_bookings || 0;
+        document.getElementById('stat-cancelled').textContent = data.cancelled_bookings || 0;
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    }
+
+    async function loadBookings(page = 1) {
+      currentPage = page;
+      const tbody = document.getElementById('bookings-tbody');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading bookings...</td></tr>';
+
+      const status = document.getElementById('filter-status').value;
+      const dept = document.getElementById('filter-dept').value;
+      const search = document.getElementById('filter-search').value.trim();
+
+      const params = new URLSearchParams({
+        page: currentPage,
+        page_size: 15,
+        status: status,
+        department: dept,
+        search: search
+      });
+
+      try {
+        const res = await fetch(`/bookings/all?${params.toString()}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load bookings');
+        const data = await res.json();
+
+        document.getElementById('results-count').textContent = `Showing ${data.items.length} of ${data.total} bookings`;
+        document.getElementById('page-indicator').textContent = `Page ${data.page} of ${Math.max(1, Math.ceil(data.total / data.page_size))}`;
+        document.getElementById('btn-prev').disabled = (data.page <= 1);
+        document.getElementById('btn-next').disabled = (data.page * data.page_size >= data.total);
+
+        if (data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No reservations found matching the filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        data.items.forEach(item => {
+          const tr = document.createElement('tr');
+          const isCancelled = item.status === 'cancelled';
+          const badgeClass = isCancelled ? 'badge-cancelled' : 'badge-confirmed';
+
+          tr.innerHTML = `
+            <td>#${item.id}</td>
+            <td>
+              <strong>${item.resource_name || 'Room ' + item.resource_id}</strong>
+              <div class="text-muted text-sm">${item.resource_building || 'Campus'} • ${item.resource_type || 'facility'}</div>
+            </td>
+            <td>
+              <div>${item.booker_name || 'User #' + item.user_id}</div>
+              <div class="text-muted text-sm">${item.booker_email || ''}</div>
+              <span class="badge badge-role">${item.booker_role || 'member'}</span>
+            </td>
+            <td>
+              <div><strong>${item.date}</strong></div>
+              <div class="text-muted text-sm">${item.start} - ${item.end}</div>
+            </td>
+            <td>
+              <div>${item.purpose || '<span class="text-muted">No purpose stated</span>'}</div>
+              ${item.cancel_reason ? `<div class="text-sm" style="color: var(--danger);">Reason: ${item.cancel_reason}</div>` : ''}
+            </td>
+            <td>
+              <span class="badge ${badgeClass}">${item.status}</span>
+            </td>
+            <td>
+              <div class="flex gap-1">
+                ${!isCancelled ? `<button class="btn btn-danger btn-sm btn-cancel-action" data-id="${item.id}" data-name="${item.resource_name || 'Room'}">Cancel</button>` : ''}
+                <button class="btn btn-outline btn-sm btn-history-action" data-id="${item.id}">Audit</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Attach action handlers
+        document.querySelectorAll('.btn-cancel-action').forEach(btn => {
+          btn.addEventListener('click', () => {
+            selectedBookingId = btn.dataset.id;
+            document.getElementById('cancel-modal-desc').textContent = `Cancel booking #${selectedBookingId} (${btn.dataset.name}).`;
+            document.getElementById('cancel-reason').value = '';
+            document.getElementById('cancel-modal').classList.remove('hidden');
+          });
+        });
+
+        document.querySelectorAll('.btn-history-action').forEach(btn => {
+          btn.addEventListener('click', () => viewHistory(btn.dataset.id));
+        });
+
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 2rem;">Error: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function viewHistory(bookingId) {
+      const modal = document.getElementById('history-modal');
+      const content = document.getElementById('history-modal-content');
+      modal.classList.remove('hidden');
+      content.innerHTML = '<p class="text-muted">Loading audit entries...</p>';
+
+      try {
+        const res = await fetch(`/bookings/${bookingId}/history`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load history');
+        const data = await res.json();
+
+        if (!data || data.length === 0) {
+          content.innerHTML = '<p class="text-muted">No audit trail records found for this reservation.</p>';
+          return;
+        }
+
+        let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
+        data.forEach(entry => {
+          html += `
+            <div style="border-left: 3px solid var(--primary); padding-left: 0.75rem; font-size: 0.85rem;">
+              <div class="flex-between">
+                <strong>${entry.action.toUpperCase()} (${entry.outcome})</strong>
+                <span class="text-muted text-sm">${new Date(entry.at).toLocaleString()}</span>
+              </div>
+              <div class="text-muted text-sm">Actor ID: ${entry.actor_id ?? 'System'}</div>
+              ${entry.detail ? `<pre style="background: #f8fafc; padding: 0.35rem; margin-top: 0.25rem; border-radius: 4px; font-size: 0.75rem;">${JSON.stringify(entry.detail, null, 2)}</pre>` : ''}
+            </div>
+          `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+      } catch (err) {
+        content.innerHTML = `<p style="color: var(--danger);">Failed to load history: ${err.message}</p>`;
+      }
+    }
+
+    // Modal Events
+    document.getElementById('btn-cancel-modal-close').addEventListener('click', () => {
+      document.getElementById('cancel-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-history-modal-close').addEventListener('click', () => {
+      document.getElementById('history-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-confirm-cancel').addEventListener('click', async () => {
+      const reason = document.getElementById('cancel-reason').value.trim();
+      if (!reason) {
+        showToast('Please provide a cancellation reason', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`/bookings/${selectedBookingId}/cancel`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to cancel booking');
+        }
+        showToast(`Booking #${selectedBookingId} successfully cancelled.`, 'success');
+        document.getElementById('cancel-modal').classList.add('hidden');
+        loadBookings(currentPage);
+        loadStats();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    // Filter & Pagination Listeners
+    document.getElementById('btn-search').addEventListener('click', () => loadBookings(1));
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+      loadStats();
+      loadBookings(currentPage);
+      showToast('Dashboard refreshed', 'info');
+    });
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      if (currentPage > 1) loadBookings(currentPage - 1);
+    });
+    document.getElementById('btn-next').addEventListener('click', () => {
+      loadBookings(currentPage + 1);
+    });
+
+    // Logout
+    document.getElementById('nav-logout').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      } finally {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // Init
+    checkAuth().then(ok => {
+      if (ok) {
+        loadStats();
+        loadBookings(1);
+      }
+    });
+  </script>
+</body>
+</html>

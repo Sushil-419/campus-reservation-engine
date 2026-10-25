@@ -105,11 +105,12 @@
   <!-- Top Navigation Bar -->
   <header>
     <nav class="navbar">
-      <h2>KLE Tech (Team 16) — Reservation Engine</h2>
+      <h2>KLE Tech (Team 16) ï¿½ Reservation Engine</h2>
       <div class="nav-links">
         <a href="resources.html">Resources</a>
         <a href="bookings.html">My Bookings</a>
         <a href="named-me.html" class="active">Bookings Naming Me</a>
+        <a href="admin.html" id="nav-admin" class="hidden">Admin</a>
 
         <span class="user-info" id="user-info">Loading user...</span>
         <a href="#" id="nav-logout">Logout</a>
@@ -271,6 +272,10 @@
         const userInfoEl = document.getElementById('user-info');
         if (userInfoEl) {
           userInfoEl.textContent = `${user.name} (${formatRoleDisplay(user)})`;
+        }
+        if (user.role === "hod") {
+          const adminLink = document.getElementById("nav-admin");
+          if (adminLink) adminLink.classList.remove("hidden");
         }
 
         return user;

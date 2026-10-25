@@ -66,31 +66,52 @@ USERS.append({
     "_password": "hod123",
 })
 
+# Admin HODs
+USERS.append({
+    "email": "ekbotesushilendr0@gmail.com",
+    "name": "Sushilendra Ekbote (Admin)",
+    "password_hash": None,
+    "role": "hod",
+    "is_cr": False,
+    "department": "CSE",
+    "_password": "Admin@123",
+})
+
+USERS.append({
+    "email": "vishalkhairamode927@gmail.com",
+    "name": "Vishal Khairamode (Admin)",
+    "password_hash": None,
+    "role": "hod",
+    "is_cr": False,
+    "department": "CSE",
+    "_password": "Admin@123",
+})
+
 
 def seed_users():
     db = SessionLocal()
     try:
-        existing = db.query(User).count()
-        if existing > 0:
-            print(f"Users table already has {existing} rows — skipping.")
-            return
-
-        objs = []
+        created = 0
+        updated = 0
         for u in USERS:
-            pwd = u.pop("_password")
-            u["password_hash"] = hash_password(pwd)
-            objs.append(User(**u))
+            pwd = u.pop("_password", None)
+            email = u["email"]
+            existing_user = db.query(User).filter(User.email == email).first()
+            if existing_user:
+                if pwd:
+                    existing_user.password_hash = hash_password(pwd)
+                    existing_user.role = u["role"]
+                    existing_user.name = u["name"]
+                    existing_user.department = u.get("department")
+                    updated += 1
+            else:
+                if pwd:
+                    u["password_hash"] = hash_password(pwd)
+                db.add(User(**u))
+                created += 1
 
-        db.add_all(objs)
         db.commit()
-        print(f"Seeded {len(objs)} users.")
-
-        # Summary
-        from collections import Counter
-        by_role = Counter((u.role, u.is_cr) for u in objs)
-        for (role, is_cr), count in sorted(by_role.items()):
-            label = f"{role}" + (" (CR)" if is_cr else "")
-            print(f"  {label}: {count}")
+        print(f"Users seed completed: {created} created, {updated} updated.")
     finally:
         db.close()
 

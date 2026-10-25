@@ -171,6 +171,7 @@ pytest tests/ -v
 | Role | Email | Password | Permissions |
 |---|---|---|---|
 | **HOD (Admin)** | `ekbotesushilendr0@gmail.com` | `Admin@123` | Highest privilege, quota 10, cross-department access |
+| **HOD (Admin)** | `vishalkhairamode927@gmail.com` | `Admin@123` | Highest privilege, quota 10, cross-department access |
 | **Faculty** | `faculty01@example.edu` | `faculty123` | Direct access to classrooms/labs, quota 5 |
 | **CR** | `cr01@example.edu` | `cr123` | Direct access to own department classrooms, quota 3 |
 | **Lab Instructor** | `lab_instructor01@example.edu` | `instructor123` | Direct access to own department labs, quota 5 |

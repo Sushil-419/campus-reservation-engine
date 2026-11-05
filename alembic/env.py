@@ -12,7 +12,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Override sqlalchemy.url from environment
-db_url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+is_render = os.getenv("RENDER") == "true" or "onrender.com" in os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+db_url = os.getenv("DATABASE_URL")
+if not db_url:
+    if is_render:
+        raise RuntimeError(
+            "\n====================================================================================\n"
+            "CRITICAL CONFIGURATION ERROR ON RENDER:\n"
+            "The 'DATABASE_URL' environment variable is NOT set in your Web Service!\n"
+            "To fix this:\n"
+            "1. Open Render Dashboard -> 'campus-db' -> Info -> Copy 'Internal Database URL'\n"
+            "2. Open Render Dashboard -> 'campus-reservation-engine' -> Environment -> Add 'DATABASE_URL'\n"
+            "====================================================================================\n"
+        )
+    db_url = config.get_main_option("sqlalchemy.url")
 if db_url:
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)

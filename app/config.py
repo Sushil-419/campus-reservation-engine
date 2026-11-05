@@ -18,7 +18,20 @@ def _normalize_db_url(url: str) -> str:
         return url.replace("postgresql://", "postgresql+psycopg://", 1)
     return url
 
-_raw_db_url = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:pass@localhost:5433/booking")
+is_render = os.getenv("RENDER") == "true" or "onrender.com" in os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+_raw_db_url = os.getenv("DATABASE_URL")
+if not _raw_db_url:
+    if is_render:
+        raise RuntimeError(
+            "\n====================================================================================\n"
+            "CRITICAL CONFIGURATION ERROR ON RENDER:\n"
+            "The 'DATABASE_URL' environment variable is NOT set in your Web Service!\n"
+            "To fix this:\n"
+            "1. Open Render Dashboard -> 'campus-db' -> Info -> Copy 'Internal Database URL'\n"
+            "2. Open Render Dashboard -> 'campus-reservation-engine' -> Environment -> Add 'DATABASE_URL'\n"
+            "====================================================================================\n"
+        )
+    _raw_db_url = "postgresql+psycopg://postgres:pass@localhost:5433/booking"
 DATABASE_URL: str = _normalize_db_url(_raw_db_url)
 
 _raw_test_db_url = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg://postgres:pass@localhost:5433/booking_test")

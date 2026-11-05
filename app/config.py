@@ -1,7 +1,14 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env file from project root reliably regardless of current working directory
+_base_dir = Path(__file__).resolve().parent.parent
+_env_file = _base_dir / ".env"
+if _env_file.exists():
+    load_dotenv(dotenv_path=_env_file, override=True)
+else:
+    load_dotenv(override=True)
 
 def _normalize_db_url(url: str) -> str:
     """Normalize cloud database URLs (postgres://, postgresql://) to psycopg 3 driver."""
@@ -11,10 +18,10 @@ def _normalize_db_url(url: str) -> str:
         return url.replace("postgresql://", "postgresql+psycopg://", 1)
     return url
 
-_raw_db_url = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:pass@localhost:5432/booking")
+_raw_db_url = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:pass@localhost:5433/booking")
 DATABASE_URL: str = _normalize_db_url(_raw_db_url)
 
-_raw_test_db_url = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg://postgres:pass@localhost:5432/booking_test")
+_raw_test_db_url = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg://postgres:pass@localhost:5433/booking_test")
 TEST_DATABASE_URL: str = _normalize_db_url(_raw_test_db_url)
 
 NAIVE_DELAY_MS: int = int(os.getenv("NAIVE_DELAY_MS", "0"))

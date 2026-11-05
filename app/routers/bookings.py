@@ -237,9 +237,12 @@ def list_all_bookings(
     user: User = Depends(get_current_user),
     db: DBSession = Depends(get_db),
 ):
-    """List all campus bookings for HOD / Admin oversight."""
-    if user.role != "hod":
-        raise HTTPException(403, detail="HOD admin privileges required")
+    """List campus bookings for HOD / Admin oversight.
+    - super_admin / admin: sees all bookings.
+    - hod: sees only bookings for resources under their department or allotted buildings.
+    """
+    if user.role not in ("hod", "admin", "super_admin"):
+        raise HTTPException(403, detail="Admin/HOD privileges required")
 
     offset = (page - 1) * page_size
     query = select(Booking, Resource, User).join(
@@ -253,6 +256,24 @@ def list_all_bookings(
     ).join(
         User, Booking.user_id == User.id
     )
+
+    # Restrict HOD to only their department or allotted buildings
+    if user.role == "hod":
+        from app.models import HodBuilding
+        from sqlalchemy import or_
+        assigned = db.execute(
+            select(HodBuilding).where(HodBuilding.hod_id == user.id)
+        ).scalars().all()
+        conds = []
+        if user.department:
+            conds.append(Resource.department == user.department)
+        for a in assigned:
+            conds.append((Resource.building == a.building) & (Resource.department == a.department))
+        if conds:
+            query = query.where(or_(*conds))
+            count_query = count_query.where(or_(*conds))
+        else:
+            return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
     if status and status != "all":
         query = query.where(Booking.status == status)
@@ -290,9 +311,43 @@ def get_booking_stats(
     user: User = Depends(get_current_user),
     db: DBSession = Depends(get_db),
 ):
-    """Return system-wide statistics for the admin dashboard."""
-    if user.role != "hod":
-        raise HTTPException(403, detail="HOD admin privileges required")
+    """Return dashboard statistics scoped to the user's administrative jurisdiction."""
+    if user.role not in ("hod", "admin", "super_admin"):
+        raise HTTPException(403, detail="Admin/HOD privileges required")
+
+    if user.role == "hod":
+        from app.models import HodBuilding
+        from sqlalchemy import or_
+        assigned = db.execute(
+            select(HodBuilding).where(HodBuilding.hod_id == user.id)
+        ).scalars().all()
+        conds = []
+        if user.department:
+            conds.append(Resource.department == user.department)
+        for a in assigned:
+            conds.append((Resource.building == a.building) & (Resource.department == a.department))
+
+        if not conds:
+            return {
+                "total_resources": 0,
+                "total_bookings": 0,
+                "active_bookings": 0,
+                "cancelled_bookings": 0,
+            }
+
+        scope_cond = or_(*conds)
+        total_resources = db.execute(select(func.count(Resource.id)).where(scope_cond)).scalar_one()
+        b_query = select(func.count(Booking.id)).join(Resource, Booking.resource_id == Resource.id).where(scope_cond)
+        total_bookings = db.execute(b_query).scalar_one()
+        active_bookings = db.execute(b_query.where(Booking.status == "confirmed")).scalar_one()
+        cancelled_bookings = db.execute(b_query.where(Booking.status == "cancelled")).scalar_one()
+
+        return {
+            "total_resources": total_resources,
+            "total_bookings": total_bookings,
+            "active_bookings": active_bookings,
+            "cancelled_bookings": cancelled_bookings,
+        }
 
     total_resources = db.execute(select(func.count(Resource.id))).scalar_one()
     total_bookings = db.execute(select(func.count(Booking.id))).scalar_one()
@@ -339,8 +394,14 @@ def cancel_booking(
     # Named faculty can cancel
     if booking.faculty_ref_id == user.id:
         allowed = True
-    # HOD can cancel (department HOD or campus admin)
+    # HOD can cancel for resources under their jurisdiction; super_admin/admin for all
     if user.role == "hod":
+        from app.policy import hod_manages_resource
+        if hod_manages_resource(db, user, resource):
+            allowed = True
+        else:
+            raise HTTPException(403, detail="HOD can only cancel reservations within their assigned department or building")
+    elif user.role in ("admin", "super_admin"):
         allowed = True
     # For timetable bookings, the teaching faculty (creator) can cancel
     if booking.source == "timetable" and booking.user_id == user.id:

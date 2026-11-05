@@ -3,508 +3,1932 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard — Campus Reservation Engine</title>
+  <title>Administrative Governance &mdash; Campus Engine</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .nav-links a.active {
-      font-weight: 700;
-      border-bottom: 2px solid white;
-      padding-bottom: 2px;
-    }
-
-    /* Stat Cards */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    .stat-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 1.25rem;
-      border-left: 4px solid var(--primary);
+    .admin-tabs {
       display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    .stat-card.success { border-left-color: var(--success); }
-    .stat-card.warning { border-left-color: var(--warning); }
-    .stat-card.danger { border-left-color: var(--danger); }
-
-    .stat-val {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .stat-label {
-      font-size: 0.825rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 600;
-    }
-
-    /* Admin Table */
-    .table-container {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      border-bottom: 2px solid var(--border-light);
+      margin-bottom: 1.5rem;
+      gap: 0.5rem;
       overflow-x: auto;
     }
-    table.admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.875rem;
-    }
-    table.admin-table th {
-      background: #f8fafc;
+    .admin-tab {
+      padding: 0.75rem 1.25rem;
+      font-size: 0.88rem;
+      font-weight: 600;
       color: var(--text-muted);
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--border);
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      white-space: nowrap;
+      transition: color var(--transition), border-color var(--transition);
     }
-    table.admin-table td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+    .admin-tab:hover {
+      color: var(--text);
     }
-    table.admin-table tr:hover {
-      background: #f8fafc;
+    .admin-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
     }
-
-    /* Badges */
-    .badge {
-      display: inline-block;
-      padding: 0.2rem 0.55rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: capitalize;
+    .tab-section {
+      display: none;
     }
-    .badge-confirmed { background: #dcfce7; color: #166534; }
-    .badge-cancelled { background: #fee2e2; color: #991b1b; }
-    .badge-role { background: #e0e7ff; color: #3730a3; font-size: 0.7rem; }
-
-    /* Modal Backdrop & Dialog */
-    .modal-backdrop {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(2px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 1rem;
-    }
-    .modal-backdrop.hidden {
-      display: none !important;
-    }
-    .modal-dialog {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-      width: 100%;
-      max-width: 520px;
-      padding: 1.5rem;
+    .tab-section.active {
+      display: block;
     }
   </style>
 </head>
 <body>
-  <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- Top Navigation Bar -->
-  <header>
-    <nav class="navbar">
-      <h2>KLE Tech (Team 16) — Reservation Engine</h2>
-      <div class="nav-links">
-        <a href="resources.html">Resources</a>
-        <a href="bookings.html">My Bookings</a>
-        <a href="named-me.html">Bookings Naming Me</a>
-        <a href="admin.html" id="nav-admin" class="active">Admin</a>
-        <span class="user-info" id="user-info">Loading user...</span>
-        <a href="#" id="nav-logout">Logout</a>
-      </div>
-    </nav>
-  </header>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
 
-  <main class="container">
-    <!-- Page Header -->
-    <div class="flex-between mb-2" style="flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text);">Campus Administration</h1>
-        <p class="text-muted text-sm">System oversight, campus-wide reservation tracking, and administrative controls.</p>
-      </div>
-      <div class="flex gap-1" style="align-items: center;">
-        <span id="results-count" class="text-muted text-sm"></span>
-        <button class="btn btn-outline btn-sm" id="btn-refresh">↻ Refresh</button>
-      </div>
-    </div>
-
-    <!-- Stat Metric Cards -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-label">Total Facilities</span>
-        <span class="stat-val" id="stat-resources">368</span>
-      </div>
-      <div class="stat-card warning">
-        <span class="stat-label">Total Bookings</span>
-        <span class="stat-val" id="stat-total">-</span>
-      </div>
-      <div class="stat-card success">
-        <span class="stat-label">Active (Confirmed)</span>
-        <span class="stat-val" id="stat-active">-</span>
-      </div>
-      <div class="stat-card danger">
-        <span class="stat-label">Cancelled</span>
-        <span class="stat-val" id="stat-cancelled">-</span>
-      </div>
-    </div>
-
-    <!-- Filter Bar -->
-    <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
-      <div class="flex gap-1" style="flex-wrap: wrap; align-items: center;">
-        <div style="flex: 1; min-width: 220px;">
-          <input type="text" id="filter-search" placeholder="Search by booker, room, building, or purpose..." style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
+    <div class="main-content">
+      <header class="topbar">
+        <div class="flex items-center gap-2">
+          <button id="sidebar-toggle" class="btn btn-ghost btn-sm">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="topbar-title" id="admin-header-title">Campus Governance &amp; Administration</span>
         </div>
-        <div>
-          <select id="filter-status" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
-            <option value="all">All Statuses</option>
-            <option value="confirmed" selected>Confirmed (Active)</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+        <div class="topbar-actions flex items-center gap-2">
+          <span id="admin-role-badge"></span>
+          <button class="btn btn-ghost btn-sm" onclick="refreshCurrentTab()">Refresh Data</button>
         </div>
-        <div>
-          <select id="filter-dept" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;">
-            <option value="all">All Departments</option>
-            <option value="CSE">CSE</option>
-            <option value="EEE">EEE</option>
-            <option value="Civil">Civil</option>
-            <option value="Mechanical">Mechanical</option>
-            <option value="Architecture">Architecture</option>
-            <option value="Biotech">Biotech</option>
-          </select>
+      </header>
+
+      <main class="page-body">
+        <!-- Top Metric Counters -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Facilities</div>
+            <div class="stat-value" id="stat-res">0</div>
+            <div class="stat-sub">Campus resources</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-label">Total Bookings</div>
+            <div class="stat-value" id="stat-bookings">0</div>
+            <div class="stat-sub">Confirmed &amp; historic</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-label">Active Slots</div>
+            <div class="stat-value" id="stat-active">0</div>
+            <div class="stat-sub">Future reservations</div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-label">Revocations</div>
+            <div class="stat-value" id="stat-cancelled">0</div>
+            <div class="stat-sub">Cancelled allocations</div>
+          </div>
         </div>
-        <button class="btn btn-primary" id="btn-search">Filter</button>
+
+        <!-- Navigation Tabs -->
+        <div class="admin-tabs" id="admin-tab-bar">
+          <button class="admin-tab active" data-tab="tab-bookings" onclick="switchAdminTab('tab-bookings')">Reservations Oversight</button>
+          <button class="admin-tab" data-tab="tab-crs" onclick="switchAdminTab('tab-crs')">Class Representatives (CR)</button>
+          <button class="admin-tab" id="tab-btn-users" data-tab="tab-users" onclick="switchAdminTab('tab-users')">User Directory &amp; RBAC</button>
+          <button class="admin-tab" id="tab-btn-buildings" data-tab="tab-buildings" onclick="switchAdminTab('tab-buildings')">HOD Building Allotments</button>
+          <button class="admin-tab" id="tab-btn-facilities" data-tab="tab-facilities" onclick="switchAdminTab('tab-facilities')">Facility Inventory</button>
+          <button class="admin-tab" id="tab-btn-clubs" data-tab="tab-clubs" onclick="switchAdminTab('tab-clubs')">Student Club Approvals</button>
+          <button class="admin-tab" id="tab-btn-timetable" data-tab="tab-timetable" onclick="switchAdminTab('tab-timetable')">Timetable Ingestion &amp; Calendar of Events</button>
+        </div>
+
+        <!-- TAB 1: RESERVATIONS OVERSIGHT -->
+        <section id="tab-bookings" class="tab-section active">
+          <div class="filter-bar">
+            <div class="form-group" style="flex: 2;">
+              <label class="form-label">Search Reservations</label>
+              <input type="text" id="b-search" class="form-control" placeholder="Search booker name, email, room, or purpose...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select id="b-status" class="form-control">
+                <option value="all">All Records</option>
+                <option value="confirmed" selected>Confirmed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div class="form-group" id="b-dept-group">
+              <label class="form-label">Department Filter</label>
+              <select id="b-dept" class="form-control">
+                <option value="all">All Departments</option>
+                <option value="CSE">CSE</option>
+                <option value="EEE">EEE</option>
+                <option value="Civil">Civil</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Architecture">Architecture</option>
+                <option value="Biotech">Biotech</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadAdminBookings(1)">Filter</button>
+          </div>
+
+          <div class="table-wrap mb-2">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Resource</th>
+                  <th>Booked By</th>
+                  <th>Schedule</th>
+                  <th>Purpose</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="bookings-tbody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">Loading reservations...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="bookings-pagination" style="display: none;">
+            <span class="pagination-info" id="b-page-info">Showing records</span>
+            <div class="pagination-controls">
+              <button class="page-btn" id="b-prev">&larr; Previous</button>
+              <button class="page-btn" id="b-next">Next &rarr;</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: CLASS REPRESENTATIVES (CR) MANAGEMENT -->
+        <section id="tab-crs" class="tab-section">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <h3 class="card-title">Class Representatives (CR) Portfolio</h3>
+              <p class="text-muted text-xs" id="cr-section-desc">HODs appoint and manage Class Representatives for their specific branch and division.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openAppointCrModal()">Appoint Class Representative</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>CR ID</th>
+                  <th>Name</th>
+                  <th>Institutional Email</th>
+                  <th>Assigned Branch</th>
+                  <th>Division</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="crs-tbody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">Loading Class Representatives...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 3: USER DIRECTORY & RBAC (Admin / Super Admin) -->
+        <section id="tab-users" class="tab-section">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <h3 class="card-title">User Accounts &amp; Privilege Delegation</h3>
+              <p class="text-muted text-xs">Super Admin can elevate users to HOD or Admin; Admins can add Faculty and Lab Instructors.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">Provision Staff Account</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="form-group" style="flex: 2;">
+              <input type="text" id="u-search" class="form-control" placeholder="Search by name or email...">
+            </div>
+            <div class="form-group">
+              <select id="u-role" class="form-control">
+                <option value="">All Roles</option>
+                <option value="super_admin">Super Admin</option>
+                <option value="admin">Admin</option>
+                <option value="hod">Head of Dept (HOD)</option>
+                <option value="faculty">Faculty</option>
+                <option value="lab_instructor">Lab Instructor</option>
+                <option value="cr">Class Representative (CR)</option>
+                <option value="club_president">Club President</option>
+                <option value="student">Student</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadUsers()">Filter Users</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Department / Branch</th>
+                  <th>Created</th>
+                  <th style="text-align: right;">Controls</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">Loading users...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 4: HOD BUILDING ALLOTMENTS (Super Admin) -->
+        <section id="tab-buildings" class="tab-section">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <h3 class="card-title">Building Allotment to HODs</h3>
+              <p class="text-muted text-xs">A single building complex can be allotted to multiple HODs across shared department wings.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-open-assign-b" onclick="openAssignBuildingModal()">Allot Building Complex to HOD</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Allotment ID</th>
+                  <th>HOD Name &amp; Email</th>
+                  <th>Building Complex</th>
+                  <th>Department Jurisdiction</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hod-buildings-tbody">
+                <tr><td colspan="5" class="text-center text-muted" style="padding: 2.5rem;">Loading allotments...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 5: FACILITY INVENTORY -->
+        <section id="tab-facilities" class="tab-section">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <h3 class="card-title">Campus Facility Inventory</h3>
+              <p class="text-muted text-xs">Manage departmental classrooms, laboratories, and central venues (auditoriums, courts).</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openCreateResourceModal()">Register New Facility</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Facility Name</th>
+                  <th>Building &amp; Floor</th>
+                  <th>Category</th>
+                  <th>Department</th>
+                  <th>Capacity</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Toggle</th>
+                </tr>
+              </thead>
+              <tbody id="facilities-tbody">
+                <tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;">Loading facilities...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 6: STUDENT CLUB APPROVALS -->
+        <section id="tab-clubs" class="tab-section">
+          <div class="flex justify-between items-center mb-2">
+            <div>
+              <h3 class="card-title">Student Club Charters</h3>
+              <p class="text-muted text-xs">Chartered student organizations grant their nominated President facility request authority.</p>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Club ID</th>
+                  <th>Organization Name</th>
+                  <th>Description</th>
+                  <th>President ID</th>
+                  <th>Status</th>
+                  <th>Charter Date</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="clubs-tbody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">Loading club submissions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- TAB 7: TIMETABLE INGESTION & CALENDAR OF EVENTS -->
+        <section id="tab-timetable" class="tab-section">
+          <div class="mb-3">
+            <h3 class="card-title">Automated Semester Timetable Ingestion</h3>
+            <p class="text-muted text-xs">
+              Upload your department timetable and university Calendar of Events. The 100% local parser extracts weekly periods and generates confirmed recurring bookings for the full semester, automatically skipping festivals, holidays, and examination periods.
+            </p>
+
+            <!-- Campus Building Reference Bar -->
+            <div class="flex flex-wrap gap-1 mt-2 items-center" style="font-size: 0.75rem; background: var(--bg-alt); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+              <span style="font-weight: 700; color: var(--text-primary);">Campus Reference:</span>
+              <span class="tag" style="background: rgba(37,99,235,0.12); color: var(--primary); border: 1px solid rgba(37,99,235,0.3); font-weight: 600;">LHC = R H Kulkarni (Rooms 307 &amp; 308, Lab 201)</span>
+              <span class="tag" style="background: rgba(168,85,247,0.12); color: #7e22ce; border: 1px solid rgba(168,85,247,0.3); font-weight: 600;">CLITE = Computer Labs 6 &amp; 7 (CSAI)</span>
+              <span class="tag" style="background: rgba(16,185,129,0.12); color: #047857; border: 1px solid rgba(16,185,129,0.3); font-weight: 600;">CLH = Central Lecture Hall 310</span>
+              <span class="tag" style="background: rgba(245,158,11,0.12); color: #b45309; border: 1px solid rgba(245,158,11,0.3); font-weight: 600;">Div A (LHC 307) / Div B (LHC 308)</span>
+            </div>
+          </div>
+
+          <div class="grid grid-2 mb-3" style="align-items: start; gap: 1.25rem;">
+            <!-- Card 1: Timetable Document Upload -->
+            <div class="card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border);">
+              <div class="flex justify-between items-center mb-2">
+                <h4 style="font-size: 0.95rem; font-weight: 700;">1. Select Timetable Document</h4>
+                <span class="badge badge-primary" style="font-size: 0.7rem;">Weekly Classes</span>
+              </div>
+              <div class="form-group mb-2">
+                <label class="form-label" for="tt-file">Timetable Document (PDF, Image JPG/PNG, CSV)</label>
+                <input type="file" id="tt-file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.bmp,.csv,.txt" style="padding: 0.4rem;">
+                <p class="text-xs text-muted mt-1">Multi-page PDFs with Division A (LHC 307) and Division B (LHC 308) are automatically recognized and separated.</p>
+              </div>
+              <button class="btn btn-primary" id="btn-parse-tt" onclick="analyzeTimetableFile()" style="width: 100%;">
+                Analyze Timetable Document
+              </button>
+            </div>
+
+            <!-- Card 2: Calendar of Events Upload & Configuration -->
+            <div class="card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border);">
+              <div class="flex justify-between items-center mb-2">
+                <h4 style="font-size: 0.95rem; font-weight: 700;">2. University Calendar of Events</h4>
+                <span class="badge badge-neutral" style="font-size: 0.7rem;">Semester Schedule</span>
+              </div>
+              
+              <div class="form-group mb-2">
+                <label class="form-label" for="coe-file">Upload Calendar Document (PDF, Image, Circular)</label>
+                <div class="flex gap-1">
+                  <input type="file" id="coe-file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.bmp,.txt" style="padding: 0.4rem; flex: 1;">
+                  <button class="btn btn-secondary" id="btn-parse-coe" onclick="analyzeCalendarFile()" style="white-space: nowrap;">
+                    Analyze Calendar
+                  </button>
+                </div>
+                <p class="text-xs text-muted mt-1">Extracts term start/end dates, holidays, and examination schedules automatically.</p>
+              </div>
+
+              <div class="form-group mb-2">
+                <label class="form-label" for="tt-term">Academic Term / Semester</label>
+                <input type="text" id="tt-term" class="form-control" value="2026-ODD-CSE-AI" placeholder="e.g. 2026-ODD-CSE-AI">
+              </div>
+
+              <div class="form-row mb-2">
+                <div class="form-group">
+                  <label class="form-label" for="tt-start">Instruction Start Date</label>
+                  <input type="date" id="tt-start" class="form-control" value="2026-09-07">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="tt-end">Term End Date</label>
+                  <input type="date" id="tt-end" class="form-control" value="2026-12-29">
+                </div>
+              </div>
+
+              <div class="form-group mb-2">
+                <label class="form-label" for="tt-holidays">Calendar of Events Holidays &amp; Exams (Comma-separated)</label>
+                <textarea id="tt-holidays" class="form-control" rows="2" style="font-size: 0.78rem; font-family: monospace;" placeholder="YYYY-MM-DD, YYYY-MM-DD">2026-09-14, 2026-10-02, 2026-10-10, 2026-10-15, 2026-10-16, 2026-10-17, 2026-10-19, 2026-10-20, 2026-10-21, 2026-11-09, 2026-11-10, 2026-11-27, 2026-12-07, 2026-12-08, 2026-12-09, 2026-12-25</textarea>
+                <p class="text-xs text-muted mt-1">All lectures and lab bookings falling on these dates or on Sundays are skipped automatically.</p>
+              </div>
+
+              <div id="coe-events-container" class="mt-2 hidden">
+                <label class="form-label text-xs">Detected Official Holidays &amp; Minor Exams:</label>
+                <div id="coe-events-chips" class="flex flex-wrap gap-1 mt-1" style="max-height: 110px; overflow-y: auto; padding: 0.3rem; background: var(--bg-alt); border-radius: 4px; border: 1px solid var(--border);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Parsed Review & Verification Container -->
+          <div id="tt-results-card" class="card hidden mb-3" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border);">
+            <div class="flex justify-between items-center mb-2" style="flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <h4 style="font-size: 1rem; font-weight: 700;">3. Review &amp; Verify Extracted Weekly Slots</h4>
+                <p class="text-xs text-muted" id="tt-slots-summary">Verify the detected periods and assigned faculties before expanding across the semester.</p>
+              </div>
+              <div class="flex gap-1 items-center" style="flex-wrap: wrap;">
+                <!-- View Mode Switcher -->
+                <div class="flex gap-1" style="background: var(--bg-alt); padding: 0.2rem; border-radius: 6px; border: 1px solid var(--border);">
+                  <button class="btn btn-sm btn-primary" id="btn-view-matrix" onclick="switchTimetableView('matrix')">Weekly Grid View</button>
+                  <button class="btn btn-sm btn-ghost" id="btn-view-table" onclick="switchTimetableView('table')">Verification Table</button>
+                </div>
+
+                <button class="btn btn-primary" id="btn-commit-tt" onclick="commitTimetableToSemester()" style="font-weight: 600;">
+                  Generate Semester Bookings
+                </button>
+              </div>
+            </div>
+
+            <!-- Division Pills and Search Filter Bar -->
+            <div class="flex justify-between items-center mb-2" style="flex-wrap: wrap; gap: 0.5rem; background: var(--bg-alt); padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border);">
+              <div class="flex gap-1 items-center">
+                <span class="text-xs text-muted" style="font-weight: 600;">Filter Division:</span>
+                <button class="btn btn-sm btn-primary" id="btn-div-all" onclick="setDivisionFilter('all')">All Divisions</button>
+                <button class="btn btn-sm btn-ghost" id="btn-div-a" onclick="setDivisionFilter('A')">Division A (R H Kulkarni 307)</button>
+                <button class="btn btn-sm btn-ghost" id="btn-div-b" onclick="setDivisionFilter('B')">Division B (R H Kulkarni 308)</button>
+              </div>
+              <div class="flex gap-1 items-center">
+                <input type="text" id="tt-table-filter" class="form-control" placeholder="Search course, room, faculty..." style="font-size: 0.8rem; padding: 0.35rem 0.6rem; width: 200px;" oninput="applySlotFilter()">
+              </div>
+            </div>
+
+            <!-- VIEW 1: Interactive Weekly Schedule Matrix View -->
+            <div id="tt-matrix-view-wrap" class="table-wrap mb-2" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 6px;">
+              <table style="width: 100%; border-collapse: collapse; min-width: 950px; font-size: 0.8rem;" id="tt-matrix-table">
+                <thead>
+                  <tr style="background: var(--bg-alt); text-align: center; border-bottom: 2px solid var(--border);">
+                    <th style="width: 100px; padding: 0.6rem;">Day</th>
+                    <th style="padding: 0.5rem;">08:00 - 09:00</th>
+                    <th style="padding: 0.5rem;">09:00 - 10:00</th>
+                    <th style="padding: 0.5rem;">10:15 - 11:15</th>
+                    <th style="padding: 0.5rem;">11:15 - 12:15</th>
+                    <th style="padding: 0.5rem; background: rgba(0,0,0,0.02); color: var(--text-muted); width: 80px;">12:30 - 01:30</th>
+                    <th style="padding: 0.5rem;">01:30 - 02:30</th>
+                    <th style="padding: 0.5rem;">02:30 - 03:30</th>
+                    <th style="padding: 0.5rem;">03:45 - 04:45</th>
+                  </tr>
+                </thead>
+                <tbody id="tt-matrix-tbody"></tbody>
+              </table>
+            </div>
+
+            <!-- VIEW 2: Detailed Verification Table View -->
+            <div id="tt-table-view-wrap" class="table-wrap mb-2 hidden" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 6px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: var(--bg-alt);">
+                    <th style="width: 70px; padding: 0.6rem 0.75rem;">Div</th>
+                    <th style="width: 100px; padding: 0.6rem 0.75rem;">Day</th>
+                    <th style="width: 125px; padding: 0.6rem 0.75rem;">Time Period</th>
+                    <th style="width: 230px; padding: 0.6rem 0.75rem;">Classroom / Lab</th>
+                    <th style="width: 230px; padding: 0.6rem 0.75rem;">Faculty In-Charge</th>
+                    <th style="min-width: 220px; padding: 0.6rem 0.75rem;">Course Code / Subject</th>
+                    <th style="width: 100px; padding: 0.6rem 0.75rem;">Confidence</th>
+                    <th style="width: 50px; text-align: center; padding: 0.6rem 0.5rem;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tt-slots-tbody"></tbody>
+              </table>
+            </div>
+            
+            <div class="flex justify-between items-center text-xs text-muted px-1 mt-1">
+              <span id="tt-visible-count">Showing all slots</span>
+              <span>Need corrections? Select from dropdowns or click the discard icon to remove any individual slot.</span>
+            </div>
+          </div>
+
+          <!-- Execution Report Alert -->
+          <div id="tt-report-banner" class="alert alert-success hidden"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: Appoint CR (HOD & Admin) -->
+  <div id="modal-appoint-cr" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Appoint Class Representative (CR)</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
       </div>
-    </div>
+      <form id="form-appoint-cr">
+        <div class="modal-body">
+          <div class="alert alert-info text-xs mb-2">
+            Appoint a Class Representative for a specific branch and division. CRs can request classrooms and laboratories within their assigned branch. One user = one role.
+          </div>
 
-    <!-- Reservations Table -->
-    <div class="table-container mb-2">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Resource</th>
-            <th>Booked By</th>
-            <th>Date & Time</th>
-            <th>Purpose / Details</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="bookings-tbody">
-          <tr>
-            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-              Loading campus reservations...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+          <div class="form-group">
+            <label class="form-label" for="cr-email">Student Institutional Email</label>
+            <input type="email" id="cr-email" class="form-control" required placeholder="student@kletech.ac.in">
+          </div>
 
-    <!-- Pagination Controls -->
-    <div class="flex-between mb-2">
-      <button class="btn btn-outline btn-sm" id="btn-prev" disabled>← Previous</button>
-      <span class="text-sm text-muted" id="page-indicator">Page 1</span>
-      <button class="btn btn-outline btn-sm" id="btn-next" disabled>Next →</button>
-    </div>
-  </main>
+          <div class="form-group">
+            <label class="form-label" for="cr-name">Student Full Name</label>
+            <input type="text" id="cr-name" class="form-control" placeholder="Required if registering a new account">
+          </div>
 
-  <!-- Cancel Modal -->
-  <div id="cancel-modal" class="modal-backdrop hidden">
-    <div class="modal-dialog">
-      <h3 style="margin-bottom: 0.5rem;">Cancel Reservation</h3>
-      <p class="text-muted text-sm mb-2" id="cancel-modal-desc">Provide an administrative reason for cancellation.</p>
-      <div class="form-group mb-2">
-        <label for="cancel-reason" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Cancellation Reason</label>
-        <textarea id="cancel-reason" rows="3" placeholder="e.g. Facility needed for scheduled university examination" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem;" required></textarea>
+          <div class="form-group">
+            <label class="form-label" for="cr-pass">Password</label>
+            <input type="password" id="cr-pass" class="form-control" placeholder="Required only if registering a new account">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cr-branch">Branch Department</label>
+              <select id="cr-branch" class="form-control" required>
+                <option value="CSE">CSE</option>
+                <option value="EEE">EEE</option>
+                <option value="Civil">Civil</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Architecture">Architecture</option>
+                <option value="Biotech">Biotech</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cr-div">Class Division</label>
+              <input type="text" id="cr-div" class="form-control" required placeholder="e.g. A, B, C">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm CR Appointment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Promote Role (Super Admin) -->
+  <div id="modal-promote" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Elevate User Role</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
       </div>
-      <div class="flex gap-1" style="justify-content: flex-end;">
-        <button type="button" class="btn btn-outline" id="btn-cancel-modal-close">Close</button>
-        <button type="button" class="btn btn-danger" id="btn-confirm-cancel">Confirm Cancellation</button>
+      <form id="form-promote-role">
+        <div class="modal-body">
+          <input type="hidden" id="pm-user-id">
+          <p class="text-sm text-muted mb-2" id="pm-user-info"></p>
+
+          <div class="form-group">
+            <label class="form-label" for="pm-role">Select New Institutional Role</label>
+            <select id="pm-role" class="form-control" required onchange="handlePromoteRoleChange()">
+              <option value="hod">Head of Department (HOD)</option>
+              <option value="admin">Administrator</option>
+              <option value="faculty">Faculty</option>
+              <option value="lab_instructor">Lab Instructor</option>
+              <option value="student">Student</option>
+            </select>
+          </div>
+
+          <div id="pm-dept-group" class="form-group">
+            <label class="form-label" for="pm-dept">Assigned Department Jurisdiction</label>
+            <select id="pm-dept" class="form-control">
+              <option value="CSE">CSE</option>
+              <option value="EEE">EEE</option>
+              <option value="Civil">Civil</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Architecture">Architecture</option>
+              <option value="Biotech">Biotech</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Role Elevation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Assign Building (Super Admin) -->
+  <div id="modal-assign" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Allot Building Complex to HOD</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
+      </div>
+      <form id="form-assign-b">
+        <div class="modal-body">
+          <div class="alert alert-info text-xs mb-2">
+            A single building can be allotted to multiple HODs. Each HOD manages rooms belonging to their department within that complex.
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ab-hod">Select Head of Department (HOD)</label>
+            <select id="ab-hod" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ab-building">Building Complex</label>
+            <select id="ab-building" class="form-control" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ab-dept">Department Scope / Wing</label>
+            <select id="ab-dept" class="form-control" required>
+              <option value="CSE">CSE</option>
+              <option value="EEE">EEE</option>
+              <option value="Civil">Civil</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Architecture">Architecture</option>
+              <option value="Biotech">Biotech</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Allotment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Provision Staff User -->
+  <div id="modal-user" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Provision Staff Account</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
+      </div>
+      <form id="form-create-user">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="cu-name">Full Name</label>
+            <input type="text" id="cu-name" class="form-control" required placeholder="e.g. Dr. Ramesh Patil">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cu-email">Institutional Email</label>
+            <input type="email" id="cu-email" class="form-control" required placeholder="rpatil@kletech.ac.in">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cu-pass">Initial Password</label>
+            <input type="password" id="cu-pass" class="form-control" required placeholder="Temporary password">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cu-role">Assigned Role</label>
+              <select id="cu-role" class="form-control" required>
+                <option value="faculty">Faculty / Assistant Professor</option>
+                <option value="lab_instructor">Lab Instructor</option>
+                <option value="hod">Head of Department (HOD)</option>
+                <option value="admin">Administrator</option>
+                <option value="student">Student</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cu-dept">Department</label>
+              <select id="cu-dept" class="form-control">
+                <option value="CSE">CSE</option>
+                <option value="EEE">EEE</option>
+                <option value="Civil">Civil</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Architecture">Architecture</option>
+                <option value="Biotech">Biotech</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Register Facility -->
+  <div id="modal-resource" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Register Campus Facility</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
+      </div>
+      <form id="form-create-res">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="cr-name">Facility / Room Name</label>
+            <input type="text" id="cr-name" class="form-control" required placeholder="e.g. CS-204 or Turing Seminar Hall">
+          </div>
+          <div class="form-row">
+            <div class="form-group" id="cr-b-container">
+              <label class="form-label" for="cr-b">Building Complex</label>
+              <input type="text" id="cr-b" class="form-control" required placeholder="e.g. Tech Block A">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cr-floor">Floor Number</label>
+              <input type="number" id="cr-floor" class="form-control" required value="1" min="0" max="10">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cr-type">Category</label>
+              <select id="cr-type" class="form-control" required>
+                <option value="classroom">Classroom</option>
+                <option value="lab">Laboratory</option>
+                <option value="project_space">Project Studio</option>
+                <option value="seminar_hall">Seminar Hall</option>
+                <option value="auditorium">Auditorium</option>
+                <option value="sports">Sports Arena</option>
+                <option value="club_room">Club Room</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cr-dept">Department Scope</label>
+              <select id="cr-dept" class="form-control">
+                <option value="">Campus-wide (Shared / Central)</option>
+                <option value="CSE">CSE</option>
+                <option value="EEE">EEE</option>
+                <option value="Civil">Civil</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Architecture">Architecture</option>
+                <option value="Biotech">Biotech</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cr-cap">Seating Capacity</label>
+            <input type="number" id="cr-cap" class="form-control" placeholder="e.g. 60">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Register Facility</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Cancel Booking -->
+  <div id="modal-cancel" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Revoke Reservation</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-muted mb-2" id="cancel-modal-desc">Specify administrative reason for cancellation.</p>
+        <div class="form-group">
+          <label class="form-label" for="cancel-reason">Reason</label>
+          <textarea id="cancel-reason" class="form-control" rows="3" required placeholder="State regulatory or operational justification..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Dismiss</button>
+        <button class="btn btn-danger" id="btn-confirm-cancel">Confirm Revocation</button>
       </div>
     </div>
   </div>
 
-  <!-- History Modal -->
-  <div id="history-modal" class="modal-backdrop hidden">
-    <div class="modal-dialog" style="max-width: 600px;">
-      <h3 style="margin-bottom: 0.5rem;">Booking Audit History</h3>
-      <div id="history-modal-content" style="max-height: 380px; overflow-y: auto; margin: 1rem 0;">
-        Loading audit entries...
+  <!-- MODAL: Audit History -->
+  <div id="modal-audit" class="modal-overlay hidden">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">Booking Audit Trail</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
       </div>
-      <div class="flex" style="justify-content: flex-end;">
-        <button type="button" class="btn btn-outline" id="btn-history-modal-close">Close</button>
+      <div class="modal-body" id="audit-content" style="max-height: 420px; overflow-y: auto;">
+        Loading trail...
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Close</button>
       </div>
     </div>
   </div>
 
+  <script src="app.js"></script>
   <script>
-    let currentUser = null;
-    let currentPage = 1;
-    let selectedBookingId = null;
+    let user = null;
+    let bPage = 1;
+    const bPageSize = 15;
+    let activeCancelBookingId = null;
 
-    function showToast(message, type = 'info', duration = 3500) {
-      const container = document.getElementById('toast-container');
-      if (!container) return;
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      toast.textContent = message;
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => toast.remove(), 300);
-      }, duration);
-    }
+    async function init() {
+      user = await requireRoles('super_admin', 'admin', 'hod');
+      if (!user) return;
 
-    async function checkAuth() {
-      try {
-        const res = await fetch('/auth/me', { credentials: 'include' });
-        if (!res.ok) throw new Error('Not authenticated');
-        currentUser = await res.json();
-        
-        if (currentUser.role !== 'hod') {
-          alert('Access denied: Campus Administration is restricted to HODs and Administrators.');
-          window.location.href = 'resources.html';
-          return false;
-        }
+      initSidebar(user, 'admin');
 
-        const userInfo = document.getElementById('user-info');
-        if (userInfo) {
-          userInfo.textContent = `${currentUser.name} (HOD Admin)`;
-        }
-        return true;
-      } catch (err) {
-        window.location.href = 'index.html';
-        return false;
+      // Adjust title & role badge
+      document.getElementById('admin-role-badge').innerHTML = roleBadge(user.role);
+      if (user.role === 'hod') {
+        const deptName = user.department || 'Branch';
+        document.getElementById('admin-header-title').textContent = `${deptName} Department Administration`;
+        document.getElementById('cr-section-desc').textContent = `Manage Class Representatives (CR) for ${deptName} by division.`;
+
+        // Configure tab titles specifically for HOD scope
+        document.getElementById('tab-btn-users').textContent = 'Department Staff (Faculty & Lab Instructors)';
+        document.getElementById('tab-btn-buildings').textContent = 'My Allotted Buildings';
+        document.getElementById('tab-btn-facilities').textContent = `${deptName} Facilities & Labs`;
+        document.getElementById('tab-btn-clubs').textContent = 'Student Club Charters';
+
+        // Hide super_admin allotment action button and dept filter
+        const btnAssign = document.getElementById('btn-open-assign-b');
+        if (btnAssign) btnAssign.style.display = 'none';
+        const bDeptGroup = document.getElementById('b-dept-group');
+        if (bDeptGroup) bDeptGroup.style.display = 'none';
+      } else if (user.role === 'admin') {
+        document.getElementById('admin-header-title').textContent = 'Campus Operations & Resource Management';
+        const btnAssign = document.getElementById('btn-open-assign-b');
+        if (btnAssign) btnAssign.style.display = 'none';
+      } else {
+        document.getElementById('admin-header-title').textContent = 'Central Campus Super Administration';
       }
+
+      await loadStats();
+      await loadAdminBookings(1);
     }
 
     async function loadStats() {
       try {
-        const res = await fetch('/bookings/stats', { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
-        document.getElementById('stat-resources').textContent = data.total_resources || 368;
-        document.getElementById('stat-total').textContent = data.total_bookings || 0;
-        document.getElementById('stat-active').textContent = data.active_bookings || 0;
-        document.getElementById('stat-cancelled').textContent = data.cancelled_bookings || 0;
+        const stats = await api('/bookings/stats');
+        document.getElementById('stat-res').textContent = stats.total_resources || 0;
+        document.getElementById('stat-bookings').textContent = stats.total_bookings || 0;
+        document.getElementById('stat-active').textContent = stats.active_bookings || 0;
+        document.getElementById('stat-cancelled').textContent = stats.cancelled_bookings || 0;
       } catch (err) {
-        console.error('Failed to load stats:', err);
+        console.error(err);
       }
     }
 
-    async function loadBookings(page = 1) {
-      currentPage = page;
+    function switchAdminTab(tabId) {
+      document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+
+      const activeBtn = document.querySelector(`.admin-tab[data-tab="${tabId}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+      const targetSec = document.getElementById(tabId);
+      if (targetSec) targetSec.classList.add('active');
+
+      if (tabId === 'tab-bookings') loadAdminBookings(1);
+      else if (tabId === 'tab-crs') loadCRs();
+      else if (tabId === 'tab-users') loadUsers();
+      else if (tabId === 'tab-buildings') loadHodBuildings();
+      else if (tabId === 'tab-facilities') loadFacilities();
+      else if (tabId === 'tab-clubs') loadClubs();
+      else if (tabId === 'tab-timetable') initTimetableTab();
+    }
+
+    function refreshCurrentTab() {
+      const active = document.querySelector('.admin-tab.active');
+      if (active) switchAdminTab(active.dataset.tab);
+      loadStats();
+    }
+
+    // ── TAB 1: RESERVATIONS OVERSIGHT ─────────────────────────
+    async function loadAdminBookings(page = 1) {
+      bPage = page;
       const tbody = document.getElementById('bookings-tbody');
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading bookings...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading reservations...</div></td></tr>';
 
-      const status = document.getElementById('filter-status').value;
-      const dept = document.getElementById('filter-dept').value;
-      const search = document.getElementById('filter-search').value.trim();
+      const status = document.getElementById('b-status').value;
+      const dept = document.getElementById('b-dept').value;
+      const q = document.getElementById('b-search').value.trim();
 
-      const params = new URLSearchParams({
-        page: currentPage,
-        page_size: 15,
-        status: status,
-        department: dept,
-        search: search
-      });
-
+      const params = new URLSearchParams({ page: bPage, page_size: bPageSize, status, department: dept, search: q });
       try {
-        const res = await fetch(`/bookings/all?${params.toString()}`, { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed to load bookings');
-        const data = await res.json();
-
-        document.getElementById('results-count').textContent = `Showing ${data.items.length} of ${data.total} bookings`;
-        document.getElementById('page-indicator').textContent = `Page ${data.page} of ${Math.max(1, Math.ceil(data.total / data.page_size))}`;
-        document.getElementById('btn-prev').disabled = (data.page <= 1);
-        document.getElementById('btn-next').disabled = (data.page * data.page_size >= data.total);
-
-        if (data.items.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No reservations found matching the filters.</td></tr>';
+        const data = await api(`/bookings/all?${params.toString()}`);
+        if (!data || !data.items || data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">No reservation records match criteria.</td></tr>';
+          document.getElementById('bookings-pagination').style.display = 'none';
           return;
         }
 
         tbody.innerHTML = '';
-        data.items.forEach(item => {
+        data.items.forEach(b => {
           const tr = document.createElement('tr');
-          const isCancelled = item.status === 'cancelled';
-          const badgeClass = isCancelled ? 'badge-cancelled' : 'badge-confirmed';
-
+          const isCancelled = b.status === 'cancelled';
           tr.innerHTML = `
-            <td>#${item.id}</td>
+            <td>#${b.id}</td>
             <td>
-              <strong>${item.resource_name || 'Room ' + item.resource_id}</strong>
-              <div class="text-muted text-sm">${item.resource_building || 'Campus'} • ${item.resource_type || 'facility'}</div>
+              <div class="td-primary">${b.resource_name || 'Room ' + b.resource_id}</div>
+              <div class="td-muted">${b.resource_building || 'Campus'} &bull; ${b.resource_type || 'facility'}</div>
             </td>
             <td>
-              <div>${item.booker_name || 'User #' + item.user_id}</div>
-              <div class="text-muted text-sm">${item.booker_email || ''}</div>
-              <span class="badge badge-role">${item.booker_role || 'member'}</span>
+              <div>${b.booker_name || 'User ' + b.user_id}</div>
+              <div class="td-muted">${b.booker_email || ''}</div>
+              <div>${roleBadge(b.booker_role || 'member')}</div>
             </td>
             <td>
-              <div><strong>${item.date}</strong></div>
-              <div class="text-muted text-sm">${item.start} - ${item.end}</div>
+              <div><strong>${b.date}</strong></div>
+              <div class="td-muted">${b.start} &ndash; ${b.end}</div>
             </td>
             <td>
-              <div>${item.purpose || '<span class="text-muted">No purpose stated</span>'}</div>
-              ${item.cancel_reason ? `<div class="text-sm" style="color: var(--danger);">Reason: ${item.cancel_reason}</div>` : ''}
+              <div>${b.purpose || '&mdash;'}</div>
+              ${b.cancel_reason ? `<div class="text-xs text-danger mt-1">Reason: ${b.cancel_reason}</div>` : ''}
             </td>
-            <td>
-              <span class="badge ${badgeClass}">${item.status}</span>
-            </td>
-            <td>
-              <div class="flex gap-1">
-                ${!isCancelled ? `<button class="btn btn-danger btn-sm btn-cancel-action" data-id="${item.id}" data-name="${item.resource_name || 'Room'}">Cancel</button>` : ''}
-                <button class="btn btn-outline btn-sm btn-history-action" data-id="${item.id}">Audit</button>
+            <td>${statusBadge(b.status)}</td>
+            <td style="text-align: right;">
+              <div class="flex gap-1 justify-end">
+                ${!isCancelled ? `<button class="btn btn-danger btn-sm" onclick="openCancelModal(${b.id})">Revoke</button>` : ''}
+                <button class="btn btn-ghost btn-sm" onclick="openAuditModal(${b.id})">Audit</button>
               </div>
             </td>
           `;
           tbody.appendChild(tr);
         });
 
-        // Attach action handlers
-        document.querySelectorAll('.btn-cancel-action').forEach(btn => {
-          btn.addEventListener('click', () => {
-            selectedBookingId = btn.dataset.id;
-            document.getElementById('cancel-modal-desc').textContent = `Cancel booking #${selectedBookingId} (${btn.dataset.name}).`;
-            document.getElementById('cancel-reason').value = '';
-            document.getElementById('cancel-modal').classList.remove('hidden');
-          });
-        });
-
-        document.querySelectorAll('.btn-history-action').forEach(btn => {
-          btn.addEventListener('click', () => viewHistory(btn.dataset.id));
-        });
-
+        const totalPages = Math.ceil(data.total / bPageSize);
+        document.getElementById('bookings-pagination').style.display = 'flex';
+        document.getElementById('b-page-info').textContent = `Page ${data.page} of ${totalPages} (${data.total} records)`;
+        document.getElementById('b-prev').disabled = data.page <= 1;
+        document.getElementById('b-next').disabled = data.page >= totalPages;
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 2rem;">Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
       }
     }
 
-    async function viewHistory(bookingId) {
-      const modal = document.getElementById('history-modal');
-      const content = document.getElementById('history-modal-content');
-      modal.classList.remove('hidden');
-      content.innerHTML = '<p class="text-muted">Loading audit entries...</p>';
+    document.getElementById('b-prev').addEventListener('click', () => { if (bPage > 1) loadAdminBookings(bPage - 1); });
+    document.getElementById('b-next').addEventListener('click', () => loadAdminBookings(bPage + 1));
 
-      try {
-        const res = await fetch(`/bookings/${bookingId}/history`, { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed to load history');
-        const data = await res.json();
-
-        if (!data || data.length === 0) {
-          content.innerHTML = '<p class="text-muted">No audit trail records found for this reservation.</p>';
-          return;
-        }
-
-        let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
-        data.forEach(entry => {
-          html += `
-            <div style="border-left: 3px solid var(--primary); padding-left: 0.75rem; font-size: 0.85rem;">
-              <div class="flex-between">
-                <strong>${entry.action.toUpperCase()} (${entry.outcome})</strong>
-                <span class="text-muted text-sm">${new Date(entry.at).toLocaleString()}</span>
-              </div>
-              <div class="text-muted text-sm">Actor ID: ${entry.actor_id ?? 'System'}</div>
-              ${entry.detail ? `<pre style="background: #f8fafc; padding: 0.35rem; margin-top: 0.25rem; border-radius: 4px; font-size: 0.75rem;">${JSON.stringify(entry.detail, null, 2)}</pre>` : ''}
-            </div>
-          `;
-        });
-        html += '</div>';
-        content.innerHTML = html;
-      } catch (err) {
-        content.innerHTML = `<p style="color: var(--danger);">Failed to load history: ${err.message}</p>`;
-      }
+    function openCancelModal(id) {
+      activeCancelBookingId = id;
+      document.getElementById('cancel-modal-desc').textContent = `Revoke confirmed booking #${id}.`;
+      document.getElementById('cancel-reason').value = '';
+      document.getElementById('modal-cancel').classList.remove('hidden');
     }
-
-    // Modal Events
-    document.getElementById('btn-cancel-modal-close').addEventListener('click', () => {
-      document.getElementById('cancel-modal').classList.add('hidden');
-    });
-
-    document.getElementById('btn-history-modal-close').addEventListener('click', () => {
-      document.getElementById('history-modal').classList.add('hidden');
-    });
 
     document.getElementById('btn-confirm-cancel').addEventListener('click', async () => {
       const reason = document.getElementById('cancel-reason').value.trim();
-      if (!reason) {
-        showToast('Please provide a cancellation reason', 'error');
-        return;
-      }
+      if (!reason) { showToast('Please state a reason', 'error'); return; }
       try {
-        const res = await fetch(`/bookings/${selectedBookingId}/cancel`, {
+        await api(`/bookings/${activeCancelBookingId}/cancel`, {
           method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reason })
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || 'Failed to cancel booking');
-        }
-        showToast(`Booking #${selectedBookingId} successfully cancelled.`, 'success');
-        document.getElementById('cancel-modal').classList.add('hidden');
-        loadBookings(currentPage);
+        showToast(`Booking #${activeCancelBookingId} revoked.`, 'success');
+        closeModals();
+        loadAdminBookings(bPage);
         loadStats();
       } catch (err) {
         showToast(err.message, 'error');
       }
     });
 
-    // Filter & Pagination Listeners
-    document.getElementById('btn-search').addEventListener('click', () => loadBookings(1));
-    document.getElementById('btn-refresh').addEventListener('click', () => {
-      loadStats();
-      loadBookings(currentPage);
-      showToast('Dashboard refreshed', 'info');
-    });
-    document.getElementById('btn-prev').addEventListener('click', () => {
-      if (currentPage > 1) loadBookings(currentPage - 1);
-    });
-    document.getElementById('btn-next').addEventListener('click', () => {
-      loadBookings(currentPage + 1);
-    });
+    async function openAuditModal(id) {
+      const modal = document.getElementById('modal-audit');
+      const content = document.getElementById('audit-content');
+      modal.classList.remove('hidden');
+      content.innerHTML = '<div class="text-center text-muted" style="padding: 2rem;"><span class="spinner"></span> Loading audit trail...</div>';
 
-    // Logout
-    document.getElementById('nav-logout').addEventListener('click', async (e) => {
-      e.preventDefault();
       try {
-        await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-      } finally {
-        window.location.href = 'index.html';
+        const entries = await api(`/bookings/${id}/history`);
+        if (!entries || entries.length === 0) {
+          content.innerHTML = '<div class="text-center text-muted" style="padding: 2rem;">No audit logs recorded for this slot.</div>';
+          return;
+        }
+        content.innerHTML = entries.map(e => `
+          <div style="border-left: 3px solid var(--primary); padding-left: 0.85rem; margin-bottom: 0.85rem;">
+            <div class="flex justify-between items-center">
+              <strong style="text-transform: uppercase; font-size: 0.85rem;">${e.action} (${e.outcome})</strong>
+              <span class="text-xs text-muted">${fmtDateTime(e.at)}</span>
+            </div>
+            <div class="text-xs text-muted mt-1">Actor ID: ${e.actor_id ?? 'System'}</div>
+            ${e.detail ? `<pre style="background: var(--bg); padding: 0.4rem; border-radius: 4px; font-size: 0.75rem; margin-top: 0.3rem;">${JSON.stringify(e.detail, null, 2)}</pre>` : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        content.innerHTML = `<div class="text-danger">${err.message}</div>`;
+      }
+    }
+
+    // ── TAB 2: CR MANAGEMENT ──────────────────────────────────
+    async function loadCRs() {
+      const tbody = document.getElementById('crs-tbody');
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading Class Representatives...</div></td></tr>';
+
+      try {
+        const crs = await api('/admin/cr');
+        if (!crs || crs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">No Class Representatives registered for this branch.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        crs.forEach(c => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${c.id}</td>
+            <td class="td-primary">${c.name}</td>
+            <td>${c.email}</td>
+            <td><strong>${c.branch || c.department || '&mdash;'}</strong></td>
+            <td><span class="tag">Division ${c.division || 'A'}</span></td>
+            <td><span class="badge badge-cr">Active CR</span></td>
+            <td style="text-align: right;">
+              <button class="btn btn-danger btn-sm" onclick="revokeCr(${c.id}, '${c.name}')">Revoke CR</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    function openAppointCrModal() {
+      const branchSelect = document.getElementById('cr-branch');
+      if (user.role === 'hod' && user.department) {
+        branchSelect.value = user.department;
+        branchSelect.disabled = true;
+      } else {
+        branchSelect.disabled = false;
+      }
+      document.getElementById('modal-appoint-cr').classList.remove('hidden');
+    }
+
+    document.getElementById('form-appoint-cr').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        email: document.getElementById('cr-email').value.trim(),
+        name: document.getElementById('cr-name').value.trim() || undefined,
+        password: document.getElementById('cr-pass').value || undefined,
+        branch: document.getElementById('cr-branch').value,
+        division: document.getElementById('cr-div').value.trim()
+      };
+
+      try {
+        await api('/admin/cr', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Class Representative appointed successfully.', 'success');
+        closeModals();
+        loadCRs();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     });
 
-    // Init
-    checkAuth().then(ok => {
-      if (ok) {
-        loadStats();
-        loadBookings(1);
+    async function revokeCr(userId, name) {
+      if (!confirm(`Revoke CR appointment for ${name}? The user will revert to a standard student role.`)) return;
+      try {
+        await api(`/admin/cr/${userId}`, { method: 'DELETE' });
+        showToast(`CR status revoked for ${name}.`, 'success');
+        loadCRs();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── TAB 3: USER DIRECTORY & PROMOTIONS ─────────────────────
+    async function loadUsers() {
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading users...</div></td></tr>';
+
+      const q = document.getElementById('u-search').value.trim();
+      const role = document.getElementById('u-role').value;
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (role) params.set('role', role);
+
+      try {
+        const users = await api(`/admin/users?${params.toString()}`);
+        if (!users || users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">No user accounts located.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        users.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${u.id}</td>
+            <td class="td-primary">${u.name}</td>
+            <td>${u.email}</td>
+            <td>${roleBadge(u.role)}</td>
+            <td>${u.department || '&mdash;'} ${u.branch ? `(${u.branch} Div ${u.division || ''})` : ''}</td>
+            <td class="td-muted">${fmtDate(u.created_at)}</td>
+            <td style="text-align: right;">
+              <div class="flex gap-1 justify-end">
+                ${user.role === 'super_admin' ? `
+                  <button class="btn btn-primary btn-sm" onclick="openPromoteModal(${u.id}, '${u.name}', '${u.email}', '${u.role}', '${u.department || ''}')">Elevate Role</button>
+                  <button class="btn btn-danger btn-sm" onclick="deactivateUser(${u.id})">Deactivate</button>
+                ` : ''}
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    function openPromoteModal(id, name, email, role, dept) {
+      document.getElementById('pm-user-id').value = id;
+      document.getElementById('pm-user-info').textContent = `Configuring role elevation for ${name} (${email}). Current Role: ${role.toUpperCase()}`;
+      document.getElementById('pm-role').value = role === 'student' ? 'hod' : role;
+      if (dept) document.getElementById('pm-dept').value = dept;
+      handlePromoteRoleChange();
+      document.getElementById('modal-promote').classList.remove('hidden');
+    }
+
+    function handlePromoteRoleChange() {
+      const selected = document.getElementById('pm-role').value;
+      const deptGroup = document.getElementById('pm-dept-group');
+      if (['hod', 'faculty', 'lab_instructor'].includes(selected)) {
+        deptGroup.style.display = 'block';
+      } else {
+        deptGroup.style.display = 'none';
+      }
+    }
+
+    document.getElementById('form-promote-role').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById('pm-user-id').value;
+      const newRole = document.getElementById('pm-role').value;
+      const dept = document.getElementById('pm-dept').value;
+
+      try {
+        await api(`/admin/users/${userId}/role`, {
+          method: 'PATCH',
+          body: JSON.stringify({ role: newRole, department: dept })
+        });
+        showToast('Role elevation saved successfully.', 'success');
+        closeModals();
+        loadUsers();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     });
+
+    function openCreateUserModal() {
+      const roleSelect = document.getElementById('cu-role');
+      const deptSelect = document.getElementById('cu-dept');
+      if (user.role === 'hod') {
+        roleSelect.innerHTML = `
+          <option value="faculty">Faculty / Assistant Professor</option>
+          <option value="lab_instructor">Lab Instructor</option>
+        `;
+        deptSelect.value = user.department;
+        deptSelect.disabled = true;
+      } else {
+        roleSelect.innerHTML = `
+          <option value="faculty">Faculty / Assistant Professor</option>
+          <option value="lab_instructor">Lab Instructor</option>
+          <option value="hod">Head of Department (HOD)</option>
+          <option value="admin">Administrator</option>
+          <option value="student">Student</option>
+        `;
+        deptSelect.disabled = false;
+      }
+      document.getElementById('modal-user').classList.remove('hidden');
+    }
+
+    document.getElementById('form-create-user').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('cu-name').value.trim(),
+        email: document.getElementById('cu-email').value.trim(),
+        password: document.getElementById('cu-pass').value,
+        role: document.getElementById('cu-role').value,
+        department: user.role === 'hod' ? user.department : document.getElementById('cu-dept').value
+      };
+
+      try {
+        await api('/admin/users', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Staff account created.', 'success');
+        closeModals();
+        loadUsers();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    async function deactivateUser(userId) {
+      if (!confirm(`Are you sure you want to deactivate User #${userId}?`)) return;
+      try {
+        await api(`/admin/users/${userId}`, { method: 'DELETE' });
+        showToast('User deactivated.', 'success');
+        loadUsers();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── TAB 4: HOD BUILDING ALLOTMENTS ────────────────────────
+    async function loadHodBuildings() {
+      const tbody = document.getElementById('hod-buildings-tbody');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading allotments...</div></td></tr>';
+
+      try {
+        const rows = await api('/admin/hod-buildings');
+        if (!rows || rows.length === 0) {
+          const emptyMsg = user.role === 'hod' 
+            ? 'No building complexes currently allotted to your department by Super Admin.' 
+            : 'No HOD building mappings configured yet.';
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 2.5rem;">${emptyMsg}</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = '';
+        rows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${r.id}</td>
+            <td><strong>User #${r.hod_id}</strong></td>
+            <td class="td-primary">${r.building}</td>
+            <td><span class="tag">${r.department} Wing</span></td>
+            <td style="text-align: right;">
+              ${user.role === 'super_admin' ? `<button class="btn btn-danger btn-sm" onclick="removeBuildingAllotment(${r.id})">Remove Allotment</button>` : '<span class="text-xs text-muted">Managed by Super Admin</span>'}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    async function openAssignBuildingModal() {
+      const hodSelect = document.getElementById('ab-hod');
+      const bSelect = document.getElementById('ab-building');
+      hodSelect.innerHTML = '<option value="">Loading HODs...</option>';
+      bSelect.innerHTML = '<option value="">Loading Complexes...</option>';
+      document.getElementById('modal-assign').classList.remove('hidden');
+
+      try {
+        const [hods, buildings] = await Promise.all([
+          api('/admin/users?role=hod'),
+          api('/resources/buildings')
+        ]);
+
+        hodSelect.innerHTML = hods.map(h => `<option value="${h.id}">${h.name} (${h.email} &bull; ${h.department || 'No Dept'})</option>`).join('');
+        bSelect.innerHTML = buildings.map(b => `<option value="${b}">${b}</option>`).join('');
+      } catch (err) {
+        hodSelect.innerHTML = `<option value="">Failed to load list</option>`;
+      }
+    }
+
+    document.getElementById('form-assign-b').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        hod_id: parseInt(document.getElementById('ab-hod').value),
+        building: document.getElementById('ab-building').value,
+        department: document.getElementById('ab-dept').value
+      };
+      try {
+        await api('/admin/hod-buildings', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Building complex allotted to HOD.', 'success');
+        closeModals();
+        loadHodBuildings();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    async function removeBuildingAllotment(id) {
+      if (!confirm(`Delete allotment record #${id}?`)) return;
+      try {
+        await api(`/admin/hod-buildings/${id}`, { method: 'DELETE' });
+        showToast('Allotment removed.', 'success');
+        loadHodBuildings();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── TAB 5: FACILITY REGISTRY ──────────────────────────────
+    async function loadFacilities() {
+      const tbody = document.getElementById('facilities-tbody');
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading facility registry...</div></td></tr>';
+
+      try {
+        const facilities = await api('/admin/resources');
+        if (!facilities || facilities.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;">No facilities registered under your department jurisdiction.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        facilities.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${r.id}</td>
+            <td class="td-primary">${r.name}</td>
+            <td>${r.building} &bull; Floor ${r.floor}</td>
+            <td>${typeBadge(r.type)}</td>
+            <td>${r.department || 'Campus Central (Shared)'}</td>
+            <td>${r.capacity ? r.capacity + ' seats' : '&mdash;'}</td>
+            <td>${r.is_active ? '<span class="badge badge-confirmed">Active</span>' : '<span class="badge badge-cancelled">Disabled</span>'}</td>
+            <td style="text-align: right;">
+              <button class="btn btn-ghost btn-sm" onclick="toggleResource(${r.id})">${r.is_active ? 'Disable' : 'Enable'}</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    async function openCreateResourceModal() {
+      const bContainer = document.getElementById('cr-b-container') || document.getElementById('cr-b').parentElement;
+      const deptSelect = document.getElementById('cr-dept');
+      const typeSelect = document.getElementById('cr-type');
+
+      if (user.role === 'hod') {
+        deptSelect.value = user.department;
+        deptSelect.disabled = true;
+        typeSelect.innerHTML = `
+          <option value="classroom">Classroom</option>
+          <option value="lab">Laboratory</option>
+          <option value="project_space">Project Studio</option>
+          <option value="seminar_hall">Department Seminar Hall</option>
+        `;
+        // Fetch allotted buildings for HOD
+        try {
+          const allotments = await api('/admin/hod-buildings');
+          const buildings = [...new Set(allotments.map(a => a.building))];
+          if (buildings.length > 0) {
+            bContainer.innerHTML = `
+              <label class="form-label" for="cr-b">Building Complex (Allotted)</label>
+              <select id="cr-b" class="form-control" required>
+                ${buildings.map(b => `<option value="${b}">${b}</option>`).join('')}
+              </select>
+            `;
+          } else {
+            bContainer.innerHTML = `
+              <label class="form-label" for="cr-b">Building Complex</label>
+              <input type="text" id="cr-b" class="form-control" required placeholder="No allotted buildings found">
+            `;
+          }
+        } catch (_) {}
+      } else {
+        deptSelect.disabled = false;
+        typeSelect.innerHTML = `
+          <option value="classroom">Classroom</option>
+          <option value="lab">Laboratory</option>
+          <option value="project_space">Project Studio</option>
+          <option value="seminar_hall">Seminar Hall</option>
+          <option value="auditorium">Auditorium</option>
+          <option value="sports">Sports Arena</option>
+          <option value="club_room">Club Room</option>
+        `;
+        bContainer.innerHTML = `
+          <label class="form-label" for="cr-b">Building Complex</label>
+          <input type="text" id="cr-b" class="form-control" required placeholder="e.g. Tech Block A">
+        `;
+      }
+
+      document.getElementById('modal-resource').classList.remove('hidden');
+    }
+
+    document.getElementById('form-create-res').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const capVal = document.getElementById('cr-cap').value;
+      const deptVal = user.role === 'hod' ? user.department : document.getElementById('cr-dept').value;
+
+      const payload = {
+        name: document.getElementById('cr-name').value.trim(),
+        building: document.getElementById('cr-b').value.trim(),
+        floor: parseInt(document.getElementById('cr-floor').value),
+        type: document.getElementById('cr-type').value,
+        department: deptVal ? deptVal : null,
+        capacity: capVal ? parseInt(capVal) : null
+      };
+
+      try {
+        await api('/admin/resources', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Resource created.', 'success');
+        closeModals();
+        loadFacilities();
+        loadStats();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    async function toggleResource(id) {
+      try {
+        const res = await api(`/admin/resources/${id}/toggle`, { method: 'PATCH' });
+        showToast(`Resource #${id} status changed to ${res.is_active ? 'Active' : 'Disabled'}.`, 'success');
+        loadFacilities();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── TAB 6: STUDENT CLUB APPROVALS ─────────────────────────
+    async function loadClubs() {
+      const tbody = document.getElementById('clubs-tbody');
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading club charters...</div></td></tr>';
+
+      try {
+        const clubs = await api('/admin/clubs');
+        if (!clubs || clubs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 2.5rem;">No club registrations submitted.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        clubs.forEach(c => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${c.id}</td>
+            <td class="td-primary">${c.name}</td>
+            <td>${c.description || '&mdash;'}</td>
+            <td>User #${c.president_id || 'N/A'}</td>
+            <td>${c.is_active ? '<span class="badge badge-confirmed">Chartered</span>' : '<span class="badge badge-pending">Pending Approval</span>'}</td>
+            <td class="td-muted">${fmtDate(c.created_at)}</td>
+            <td style="text-align: right;">
+              ${!c.is_active ? `
+                <div class="flex gap-1 justify-end">
+                  <button class="btn btn-success btn-sm" onclick="reviewClub(${c.id}, true)">Charter Club</button>
+                  <button class="btn btn-danger btn-sm" onclick="reviewClub(${c.id}, false)">Reject</button>
+                </div>
+              ` : `
+                <button class="btn btn-ghost btn-sm" onclick="reviewClub(${c.id}, false)">Revoke Charter</button>
+              `}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    async function reviewClub(clubId, approve) {
+      const action = approve ? 'charter club and elevate proposed president' : 'reject/revoke';
+      if (!confirm(`Are you sure you want to ${action} Club #${clubId}?`)) return;
+
+      try {
+        await api(`/admin/clubs/${clubId}/approve`, {
+          method: 'PATCH',
+          body: JSON.stringify({ approve })
+        });
+        showToast(`Club #${clubId} ${approve ? 'chartered' : 'revoked'}.`, 'success');
+        loadClubs();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── TAB 7: TIMETABLE INGESTION & CALENDAR OF EVENTS ───────
+    let parsedSlotsData = [];
+    let cachedDeptResources = [];
+    let cachedDeptFaculties = [];
+    let activeSlotFilterText = '';
+    let currentDivisionFilter = 'all';
+    let currentTimetableView = 'matrix';
+
+    async function initTimetableTab() {
+      if (user.role === 'hod' && user.department) {
+        document.getElementById('tt-term').value = `2026-ODD-${user.department}-AI`;
+      }
+      try {
+        const [resList, userList] = await Promise.all([
+          api('/admin/resources'),
+          api('/admin/users?role=faculty')
+        ]);
+        cachedDeptResources = resList || [];
+        cachedDeptFaculties = userList || [];
+      } catch (_) {}
+    }
+
+    function switchTimetableView(view) {
+      currentTimetableView = view;
+      const btnMatrix = document.getElementById('btn-view-matrix');
+      const btnTable = document.getElementById('btn-view-table');
+      const wrapMatrix = document.getElementById('tt-matrix-view-wrap');
+      const wrapTable = document.getElementById('tt-table-view-wrap');
+
+      if (view === 'matrix') {
+        btnMatrix.className = 'btn btn-sm btn-primary';
+        btnTable.className = 'btn btn-sm btn-ghost';
+        wrapMatrix.classList.remove('hidden');
+        wrapTable.classList.add('hidden');
+        renderTimetableMatrix(parsedSlotsData);
+      } else {
+        btnMatrix.className = 'btn btn-sm btn-ghost';
+        btnTable.className = 'btn btn-sm btn-primary';
+        wrapMatrix.classList.add('hidden');
+        wrapTable.classList.remove('hidden');
+        renderTimetableSlotsTable(parsedSlotsData);
+      }
+    }
+
+    function setDivisionFilter(div) {
+      currentDivisionFilter = div;
+      const btnAll = document.getElementById('btn-div-all');
+      const btnA = document.getElementById('btn-div-a');
+      const btnB = document.getElementById('btn-div-b');
+
+      btnAll.className = div === 'all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+      btnA.className = div === 'A' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+      btnB.className = div === 'B' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost';
+
+      const termInput = document.getElementById('tt-term');
+      if (div === 'A') termInput.value = '2026-ODD-CSE-AI-A';
+      else if (div === 'B') termInput.value = '2026-ODD-CSE-AI-B';
+      else termInput.value = '2026-ODD-CSE-AI';
+
+      if (currentTimetableView === 'matrix') {
+        renderTimetableMatrix(parsedSlotsData);
+      } else {
+        renderTimetableSlotsTable(parsedSlotsData);
+      }
+    }
+
+    async function analyzeCalendarFile() {
+      const fileInput = document.getElementById('coe-file');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showToast('Please select a Calendar of Events file (PDF or Image)', 'error');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const btn = document.getElementById('btn-parse-coe');
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const resp = await fetch('/timetable/parse-calendar', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || 'Failed to parse calendar document');
+        }
+
+        const data = await resp.json();
+        if (data.term_name) document.getElementById('tt-term').value = data.term_name;
+        if (data.start_date) document.getElementById('tt-start').value = data.start_date;
+        if (data.end_date) document.getElementById('tt-end').value = data.end_date;
+        if (data.holidays && data.holidays.length > 0) {
+          document.getElementById('tt-holidays').value = data.holidays.join(', ');
+        }
+
+        if (data.events && data.events.length > 0) {
+          const chipContainer = document.getElementById('coe-events-chips');
+          chipContainer.innerHTML = '';
+          data.events.forEach(ev => {
+            const span = document.createElement('span');
+            span.className = 'tag';
+            span.style.cssText = 'background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.25); padding: 0.2rem 0.5rem; font-size: 0.72rem; border-radius: 4px; color: var(--text-primary);';
+            span.textContent = `${ev.date}: ${ev.name}`;
+            chipContainer.appendChild(span);
+          });
+          document.getElementById('coe-events-container').classList.remove('hidden');
+        }
+
+        showToast(`Analyzed Calendar of Events: ${data.total_holidays} excluded dates identified.`, 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
+    }
+
+    async function analyzeTimetableFile() {
+      const fileInput = document.getElementById('tt-file');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showToast('Please select a timetable file (PDF, Image, or CSV)', 'error');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const btn = document.getElementById('btn-parse-tt');
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Parsing Document Locally...';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const resp = await fetch('/timetable/parse', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || 'Failed to parse timetable file');
+        }
+
+        const data = await resp.json();
+        parsedSlotsData = data.slots || [];
+
+        if (parsedSlotsData.length === 0) {
+          showToast('No class slots could be detected in the document. Try uploading CSV or clear PDF format.', 'error');
+          return;
+        }
+
+        if (data.term_name) document.getElementById('tt-term').value = data.term_name;
+        if (data.term_start) document.getElementById('tt-start').value = data.term_start;
+        if (data.term_end) document.getElementById('tt-end').value = data.term_end;
+        if (data.default_holidays && data.default_holidays.length > 0 && !document.getElementById('tt-holidays').value) {
+          document.getElementById('tt-holidays').value = data.default_holidays.join(', ');
+        }
+
+        // Render both views
+        renderTimetableMatrix(parsedSlotsData);
+        renderTimetableSlotsTable(parsedSlotsData);
+
+        document.getElementById('tt-results-card').classList.remove('hidden');
+        document.getElementById('tt-slots-summary').textContent = `Detected ${parsedSlotsData.length} weekly slots from "${data.filename}". LHC mapped to R H Kulkarni, Labs mapped to CLITE.`;
+        showToast(`Extracted ${parsedSlotsData.length} weekly periods successfully.`, 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
+    }
+
+    function applySlotFilter() {
+      activeSlotFilterText = (document.getElementById('tt-table-filter').value || '').toLowerCase().trim();
+      if (currentTimetableView === 'matrix') {
+        renderTimetableMatrix(parsedSlotsData);
+      } else {
+        renderTimetableSlotsTable(parsedSlotsData);
+      }
+    }
+
+    function removeSlot(idx) {
+      if (idx >= 0 && idx < parsedSlotsData.length) {
+        parsedSlotsData.splice(idx, 1);
+        renderTimetableMatrix(parsedSlotsData);
+        renderTimetableSlotsTable(parsedSlotsData);
+        document.getElementById('tt-slots-summary').textContent = `${parsedSlotsData.length} weekly slots remaining.`;
+      }
+    }
+
+    function getFilteredSlots(slots) {
+      return slots.filter(s => {
+        if (currentDivisionFilter !== 'all' && s.division !== currentDivisionFilter) {
+          return false;
+        }
+        if (activeSlotFilterText) {
+          const haystack = `${s.division} ${s.weekday_name} ${s.start} ${s.end} ${s.resource_name} ${s.faculty_name} ${s.course}`.toLowerCase();
+          if (!haystack.includes(activeSlotFilterText)) return false;
+        }
+        return true;
+      });
+    }
+
+    function getCourseColorStyle(courseStr) {
+      const c = (courseStr || '').toUpperCase();
+      if (c.includes('CLOUD') || c.includes('CC')) return 'background: rgba(37,99,235,0.08); border-left: 3px solid #2563eb; color: var(--text-primary);';
+      if (c.includes('DEEP') || c.includes('DL')) return 'background: rgba(147,51,234,0.08); border-left: 3px solid #9333ea; color: var(--text-primary);';
+      if (c.includes('GPU') || c.includes('PGC')) return 'background: rgba(217,119,6,0.08); border-left: 3px solid #d97706; color: var(--text-primary);';
+      if (c.includes('AISD') || c.includes('AI-ASSISTED')) return 'background: rgba(5,150,105,0.08); border-left: 3px solid #059669; color: var(--text-primary);';
+      if (c.includes('CRYPTO') || c.includes('CNS')) return 'background: rgba(225,29,72,0.08); border-left: 3px solid #e11d48; color: var(--text-primary);';
+      return 'background: rgba(14,165,233,0.08); border-left: 3px solid #0ea5e9; color: var(--text-primary);';
+    }
+
+    function renderTimetableMatrix(slots) {
+      const tbody = document.getElementById('tt-matrix-tbody');
+      tbody.innerHTML = '';
+
+      const filtered = getFilteredSlots(slots);
+      const days = [
+        { num: 1, name: 'Monday' },
+        { num: 2, name: 'Tuesday' },
+        { num: 3, name: 'Wednesday' },
+        { num: 4, name: 'Thursday' },
+        { num: 5, name: 'Friday' },
+        { num: 6, name: 'Saturday' }
+      ];
+
+      // Time Column ranges
+      const timeCols = [
+        { label: '08:00 - 09:00', start: '08:00', end: '09:00' },
+        { label: '09:00 - 10:00', start: '09:00', end: '10:00' },
+        { label: '10:15 - 11:15', start: '10:15', end: '11:15' },
+        { label: '11:15 - 12:15', start: '11:15', end: '12:15' },
+        { label: '12:30 - 01:30', isBreak: true },
+        { label: '01:30 - 02:30', start: '13:30', end: '14:30' },
+        { label: '02:30 - 03:30', start: '14:30', end: '15:30' },
+        { label: '03:45 - 04:45', start: '15:45', end: '16:45' }
+      ];
+
+      days.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+
+        // Day cell
+        const dayTd = document.createElement('td');
+        dayTd.style.cssText = 'padding: 0.6rem; font-weight: 700; background: var(--bg-alt); text-align: center; border-right: 1px solid var(--border);';
+        dayTd.textContent = d.name;
+        tr.appendChild(dayTd);
+
+        timeCols.forEach(tc => {
+          const td = document.createElement('td');
+          td.style.cssText = 'padding: 0.35rem; vertical-align: top; border-right: 1px solid var(--border);';
+
+          if (tc.isBreak) {
+            td.style.background = 'rgba(0,0,0,0.015)';
+            td.style.textAlign = 'center';
+            td.style.color = 'var(--text-muted)';
+            td.style.fontSize = '0.7rem';
+            td.textContent = 'Lunch';
+            tr.appendChild(td);
+            return;
+          }
+
+          // Find slots for this day and overlapping time
+          const cellSlots = filtered.filter(s => {
+            if (s.weekday !== d.num) return false;
+            // Slot start overlaps or matches
+            return (s.start <= tc.start && s.end > tc.start) || (s.start >= tc.start && s.start < tc.end);
+          });
+
+          if (cellSlots.length > 0) {
+            cellSlots.forEach(s => {
+              const card = document.createElement('div');
+              card.style.cssText = `${getCourseColorStyle(s.course)} padding: 0.3rem 0.45rem; border-radius: 4px; margin-bottom: 0.25rem; font-size: 0.73rem;`;
+              
+              const divPill = `<span class="badge" style="font-size: 0.6rem; padding: 0.1rem 0.3rem; background: ${s.division === 'B' ? 'rgba(217,119,6,0.15); color: #d97706;' : 'rgba(37,99,235,0.15); color: #2563eb;'}">Div ${s.division || 'A'}</span>`;
+              
+              card.innerHTML = `
+                <div style="font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+                  <span>${s.course}</span>
+                  ${divPill}
+                </div>
+                <div style="color: var(--text-secondary); margin-top: 0.15rem; font-weight: 600;">
+                  ${s.resource_name}
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.68rem;">
+                  ${s.faculty_name} &bull; ${s.start}-${s.end}
+                </div>
+              `;
+              td.appendChild(card);
+            });
+          } else {
+            td.innerHTML = '<span style="color: var(--text-muted); opacity: 0.3;">-</span>';
+            td.style.textAlign = 'center';
+          }
+
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const countLabel = document.getElementById('tt-visible-count');
+      if (countLabel) {
+        countLabel.textContent = `Showing ${filtered.length} of ${slots.length} weekly slots (${currentDivisionFilter === 'all' ? 'All Divisions' : 'Division ' + currentDivisionFilter})`;
+      }
+    }
+
+    function renderTimetableSlotsTable(slots) {
+      const tbody = document.getElementById('tt-slots-tbody');
+      tbody.innerHTML = '';
+
+      const filtered = getFilteredSlots(slots);
+
+      filtered.forEach((s) => {
+        const idx = slots.indexOf(s);
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--border)';
+        
+        let badgeClass = 'badge-confirmed';
+        if (s.confidence === 'Medium') badgeClass = 'badge-pending';
+        else if (s.confidence === 'Low') badgeClass = 'badge-cancelled';
+
+        let resOptions = '';
+        if (s.resource_id && !cachedDeptResources.some(r => r.id === s.resource_id)) {
+          resOptions += `<option value="${s.resource_id}" selected>${s.resource_name} (${s.resource_building})</option>`;
+        }
+        resOptions += cachedDeptResources.map(r => `<option value="${r.id}" ${r.id === s.resource_id ? 'selected' : ''}>${r.name} (${r.building})</option>`).join('');
+
+        let facOptions = '';
+        if (s.faculty_id && !cachedDeptFaculties.some(f => f.id === s.faculty_id)) {
+          facOptions += `<option value="${s.faculty_id}" selected>${s.faculty_name} (${s.faculty_email})</option>`;
+        }
+        facOptions += cachedDeptFaculties.map(f => `<option value="${f.id}" ${f.id === s.faculty_id ? 'selected' : ''}>${f.name} (${f.email})</option>`).join('');
+
+        const divBadge = `<span class="badge" style="font-size: 0.7rem; font-weight: 700; ${s.division === 'B' ? 'background: rgba(217,119,6,0.15); color: #d97706;' : 'background: rgba(37,99,235,0.15); color: #2563eb;'}">Div ${s.division || 'A'}</span>`;
+
+        tr.innerHTML = `
+          <td style="padding: 0.5rem 0.5rem; text-align: center;">${divBadge}</td>
+          <td style="padding: 0.5rem 0.75rem;"><strong>${s.weekday_name}</strong></td>
+          <td style="padding: 0.5rem 0.75rem;"><span class="tag" style="font-family: monospace; font-size: 0.75rem;">${s.start} &ndash; ${s.end}</span></td>
+          <td style="padding: 0.5rem 0.75rem;">
+            <select class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.5rem;" id="tt-res-${idx}">
+              <option value="">${s.resource_name || 'Select Room'}</option>
+              ${resOptions}
+            </select>
+          </td>
+          <td style="padding: 0.5rem 0.75rem;">
+            <select class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.5rem;" id="tt-fac-${idx}">
+              <option value="">${s.faculty_name || 'Select Faculty'}</option>
+              ${facOptions}
+            </select>
+          </td>
+          <td style="padding: 0.5rem 0.75rem;">
+            <input type="text" class="form-control" style="font-size: 0.82rem; padding: 0.35rem 0.5rem;" id="tt-course-${idx}" value="${s.course || 'Lecture'}">
+          </td>
+          <td style="padding: 0.5rem 0.75rem;"><span class="badge ${badgeClass}">${s.confidence} Match</span></td>
+          <td style="padding: 0.5rem 0.5rem; text-align: center;">
+            <button class="btn btn-ghost btn-sm" style="color: var(--danger); padding: 0.2rem 0.5rem; font-size: 0.8rem;" title="Remove this slot" onclick="removeSlot(${idx})">
+              &times;
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const countLabel = document.getElementById('tt-visible-count');
+      if (countLabel) {
+        countLabel.textContent = `Showing ${filtered.length} of ${slots.length} weekly slots (${currentDivisionFilter === 'all' ? 'All Divisions' : 'Division ' + currentDivisionFilter})`;
+      }
+    }
+
+    async function commitTimetableToSemester() {
+      if (!parsedSlotsData || parsedSlotsData.length === 0) {
+        showToast('No timetable slots available to commit', 'error');
+        return;
+      }
+
+      const termName = document.getElementById('tt-term').value.trim();
+      const startDate = document.getElementById('tt-start').value;
+      const endDate = document.getElementById('tt-end').value;
+      const holidaysRaw = document.getElementById('tt-holidays').value;
+      const holidays = holidaysRaw ? holidaysRaw.split(',').map(h => h.trim()).filter(Boolean) : [];
+
+      if (!termName || !startDate || !endDate) {
+        showToast('Please fill in Term Name, Start Date, and End Date', 'error');
+        return;
+      }
+
+      // Filter slots by currently selected division if filtered
+      const slotsToCommit = parsedSlotsData.filter(s => {
+        if (currentDivisionFilter !== 'all') return s.division === currentDivisionFilter;
+        return true;
+      });
+
+      const finalSlots = [];
+      for (let i = 0; i < parsedSlotsData.length; i++) {
+        const s = parsedSlotsData[i];
+        if (currentDivisionFilter !== 'all' && s.division !== currentDivisionFilter) {
+          continue;
+        }
+
+        const resEl = document.getElementById(`tt-res-${i}`);
+        const facEl = document.getElementById(`tt-fac-${i}`);
+        const courseEl = document.getElementById(`tt-course-${i}`);
+
+        const resId = (resEl && resEl.value ? parseInt(resEl.value) : null) || s.resource_id;
+        const facId = (facEl && facEl.value ? parseInt(facEl.value) : null) || s.faculty_id;
+        const course = (courseEl && courseEl.value ? courseEl.value.trim() : null) || s.course;
+
+        if (!resId || !facId) {
+          showToast(`Row ${i + 1} (${s.weekday_name} ${s.start}-${s.end}) requires both a Room and a Faculty assignment.`, 'error');
+          return;
+        }
+
+        finalSlots.push({
+          weekday: s.weekday,
+          start: s.start,
+          end: s.end,
+          resource_id: resId,
+          faculty_id: facId,
+          course: `${course} [Div ${s.division || 'A'}]`
+        });
+      }
+
+      const btn = document.getElementById('btn-commit-tt');
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Generating Semester Bookings...';
+
+      try {
+        const result = await api('/timetable/commit', {
+          method: 'POST',
+          body: JSON.stringify({
+            term_name: termName,
+            start_date: startDate,
+            end_date: endDate,
+            holidays: holidays,
+            slots: finalSlots
+          })
+        });
+
+        const reportBanner = document.getElementById('tt-report-banner');
+        reportBanner.textContent = `${result.message} Period: ${result.term_period}. Clashes skipped: ${result.clashes_skipped}.`;
+        reportBanner.classList.remove('hidden');
+
+        showToast(`Successfully expanded ${result.total_bookings_generated} semester bookings!`, 'success');
+        document.getElementById('tt-results-card').classList.add('hidden');
+        parsedSlotsData = [];
+        loadStats();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+    }
+
+    init();
   </script>
 </body>
 </html>

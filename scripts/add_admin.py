@@ -1,4 +1,4 @@
-"""Add or update Admin (HOD) accounts in the database.
+"""Add or update Super Admin, Admin, and HOD accounts in the database.
 
 Usage:
     python -m scripts.add_admin
@@ -16,18 +16,39 @@ from app.auth import hash_password
 
 ADMINS = [
     {
+        "email": "superadmin@kletech.ac.in",
+        "name": "Super Administrator",
+        "role": "super_admin",
+        "department": None,
+        "password": "SuperAdmin@123",
+    },
+    {
+        "email": "admin@kletech.ac.in",
+        "name": "Central Campus Admin",
+        "role": "admin",
+        "department": None,
+        "password": "Admin@123",
+    },
+    {
         "email": "ekbotesushilendr0@gmail.com",
-        "name": "Sushilendra Ekbote (Admin)",
-        "role": "hod",
+        "name": "Sushilendra Ekbote (Super Admin)",
+        "role": "super_admin",
         "department": "CSE",
         "password": "Admin@123",
     },
     {
         "email": "vishalkhairamode927@gmail.com",
         "name": "Vishal Khairamode (Admin)",
-        "role": "hod",
+        "role": "admin",
         "department": "CSE",
         "password": "Admin@123",
+    },
+    {
+        "email": "hod_cse@kletech.ac.in",
+        "name": "Dr. CSE Head (HOD)",
+        "role": "hod",
+        "department": "CSE",
+        "password": "Hod@123",
     },
 ]
 
@@ -43,7 +64,7 @@ def add_or_update_admins():
                 user.role = admin["role"]
                 user.department = admin["department"]
                 user.password_hash = pwd_hash
-                print(f"Updated existing admin: {admin['email']} (role: {admin['role']})")
+                print(f"Updated existing user: {admin['email']} (role: {admin['role']})")
             else:
                 user = User(
                     email=admin["email"],
@@ -51,12 +72,11 @@ def add_or_update_admins():
                     role=admin["role"],
                     department=admin["department"],
                     password_hash=pwd_hash,
-                    is_cr=False,
                 )
                 db.add(user)
-                print(f"Created new admin: {admin['email']} (role: {admin['role']})")
+                print(f"Created new user: {admin['email']} (role: {admin['role']})")
         db.commit()
-        print("Admin accounts successfully synced to database.")
+        print("Administrative accounts successfully synced to database.")
     except Exception as e:
         db.rollback()
         print(f"Error updating admin accounts: {e}")

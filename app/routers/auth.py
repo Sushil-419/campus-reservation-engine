@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from app.db import get_db
-from app.models import User
+from app.models import User, VALID_ROLES
 from app.auth import (
     hash_password, verify_password, create_session, delete_session,
     get_current_user,
@@ -14,14 +14,26 @@ from app.audit import write_audit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Roles that can self-register (without admin intervention)
+# NOTE: CR and club_president are completely independent roles.
+# A regular student (non-CR) can become a club_president.
+# Neither implies the other — one email = one role, but any student
+# regardless of being CR or not can be assigned club_president by admin.
+SELF_REGISTER_ROLES = {"student", "faculty", "lab_instructor", "cr"}
+
+# Roles that require admin/super_admin to create
+ADMIN_ONLY_ROLES = {"super_admin", "admin", "hod", "club_president"}
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
     name: str
     password: str
-    role: str = "student"
+    role: str = "faculty"
     department: str | None = None
-    is_cr: bool = False
+    # For CR
+    branch: str | None = None
+    division: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -34,31 +46,50 @@ class UserOut(BaseModel):
     email: str
     name: str
     role: str
-    is_cr: bool
     department: str | None
+    branch: str | None = None
+    division: str | None = None
+    club_id: int | None = None
 
     model_config = {"from_attributes": True}
 
 
 @router.post("/register", response_model=UserOut, status_code=201)
 def register(body: RegisterRequest, db: DBSession = Depends(get_db)):
-    """Register a new user."""
+    """Self-register for faculty, lab_instructor, or CR.
+    HOD, admin, super_admin, and club_president must be created by an admin.
+    """
     existing = db.execute(
         select(User.id).where(User.email == body.email)
     ).scalar_one_or_none()
     if existing:
         raise HTTPException(400, detail="Email already registered")
 
-    if body.role not in ("student", "faculty", "lab_instructor", "hod"):
-        raise HTTPException(400, detail="Invalid role")
+    if body.role not in VALID_ROLES:
+        raise HTTPException(400, detail=f"Invalid role. Must be one of: {sorted(VALID_ROLES)}")
+
+    if body.role in ADMIN_ONLY_ROLES:
+        raise HTTPException(
+            403,
+            detail=f"Role '{body.role}' must be assigned by an admin. "
+                   "Contact your system administrator."
+        )
+
+    # CR must provide branch and division
+    if body.role == "cr":
+        if not body.branch:
+            raise HTTPException(400, detail="CR must provide their branch (e.g. 'CSE')")
+        if not body.division:
+            raise HTTPException(400, detail="CR must provide their division (e.g. 'A')")
 
     user = User(
         email=body.email,
         name=body.name,
         password_hash=hash_password(body.password),
         role=body.role,
-        is_cr=body.is_cr,
         department=body.department,
+        branch=body.branch,
+        division=body.division,
     )
     db.add(user)
     db.commit()
@@ -67,7 +98,7 @@ def register(body: RegisterRequest, db: DBSession = Depends(get_db)):
     write_audit(
         action="register", entity="user", outcome="success",
         actor_id=user.id, entity_id=user.id,
-        detail={"email": body.email},
+        detail={"email": body.email, "role": body.role},
         db=db,
     )
     return user

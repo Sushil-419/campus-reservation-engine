@@ -3,236 +3,409 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resource Reservation Engine</title>
+  <title>Sign In &mdash; Campus Resource Reservation Engine</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      background: #0f172a;
+      color: #f8fafc;
+    }
+    .auth-banner {
+      flex: 1.2;
+      background: radial-gradient(circle at 20% 20%, #1e3a8a 0%, #0f172a 70%);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-banner::after {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      background: rgba(37, 99, 235, 0.15);
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .banner-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .brand-symbol {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.05em;
+    }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .brand-subtitle {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .banner-content {
+      max-width: 520px;
+    }
+    .banner-heading {
+      font-size: 2.3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #ffffff;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .banner-desc {
+      font-size: 1rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    .banner-specs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    .spec-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .spec-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .spec-value {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-top: 0.25rem;
+    }
+    .banner-footer {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    .auth-panel {
+      flex: 1;
+      max-width: 540px;
+      background: #ffffff;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3.5rem 3rem;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+    }
+    .auth-header {
+      margin-bottom: 1.75rem;
+    }
+    .auth-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+    .auth-subtitle {
+      font-size: 0.88rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+    .auth-switch {
+      display: flex;
+      background: #f1f5f9;
+      border-radius: var(--radius-sm);
+      padding: 0.25rem;
+      margin-bottom: 1.75rem;
+    }
+    .switch-tab {
+      flex: 1;
+      text-align: center;
+      padding: 0.6rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: calc(var(--radius-sm) - 2px);
+      cursor: pointer;
+      color: #64748b;
+      transition: var(--transition);
+      border: none;
+      background: transparent;
+    }
+    .switch-tab.active {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: var(--shadow-xs);
+    }
+
+    @media (max-width: 960px) {
+      .auth-container {
+        flex-direction: column;
+      }
+      .auth-banner {
+        display: none;
+      }
+      .auth-panel {
+        max-width: 100%;
+        min-height: 100vh;
+        padding: 2.5rem 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <!-- Toast Notification Container -->
-  <div id="toast-container" class="toast-container"></div>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-  <!-- Centered Login/Register Card Container -->
-  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
-    <div class="container-sm" style="width: 100%; margin: 0; padding: 0;">
-      <div class="text-center mb-2">
-        <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--primary); margin-bottom: 0.25rem;">Resource Reservation & Scheduling Engine</h1>
-        <p class="text-muted text-sm"><strong>KLE Tech — Team 16</strong> | Multi-User Campus Resource Scheduling</p>
+  <div class="auth-container">
+    <!-- Left Banner Presentation -->
+    <div class="auth-banner">
+      <div class="banner-brand">
+        <div class="brand-symbol">R</div>
+        <div>
+          <div class="brand-title">Campus Reserve</div>
+          <div class="brand-subtitle">Enterprise Resource Engine</div>
+        </div>
       </div>
 
-      <div class="card">
-        <!-- Tabs for Switching Between Login and Register -->
-        <div class="tabs">
-          <button type="button" class="tab active" id="tab-login">Login</button>
-          <button type="button" class="tab" id="tab-register">Register</button>
+      <div class="banner-content">
+        <h1 class="banner-heading">Deterministic Resource Scheduling Architecture</h1>
+        <p class="banner-desc">
+          High-concurrency academic reservation management featuring PostgreSQL physical exclusion constraints, granular multi-tier role-based access control, and automated timetable synchronization.
+        </p>
+
+        <div class="banner-specs">
+          <div class="spec-card">
+            <div class="spec-label">Concurrency Control</div>
+            <div class="spec-value">GiST Index Lock</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Policy Governance</div>
+            <div class="spec-value">Multi-Tier RBAC</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Approval Queues</div>
+            <div class="spec-value">HOD &amp; Admin Routing</div>
+          </div>
+          <div class="spec-card">
+            <div class="spec-label">Audit Integrity</div>
+            <div class="spec-value">Immutable Ledger</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="banner-footer">
+        KLE Technological University &bull; Team 16 &bull; Production Architecture
+      </div>
+    </div>
+
+    <!-- Right Interaction Panel -->
+    <div class="auth-panel">
+      <div class="auth-header">
+        <h2 class="auth-title">Authentication Portal</h2>
+        <p class="auth-subtitle">Sign in to manage room allocations, requests, and schedules.</p>
+      </div>
+
+      <div class="auth-switch">
+        <button type="button" class="switch-tab active" id="tab-login" onclick="switchMode('login')">Sign In</button>
+        <button type="button" class="switch-tab" id="tab-register" onclick="switchMode('register')">Register Account</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Campus Email</label>
+          <input type="email" id="login-email" class="form-control" required placeholder="user@kletech.ac.in" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" required placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-login" style="margin-top: 1.5rem;">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" class="hidden">
+        <div class="form-group">
+          <label class="form-label" for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" class="form-control" required placeholder="e.g. Dr. Rajesh Kulkarni">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Institutional Email</label>
+          <input type="email" id="reg-email" class="form-control" required placeholder="name@kletech.ac.in">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password</label>
+          <input type="password" id="reg-password" class="form-control" required placeholder="Minimum 8 characters">
         </div>
 
-        <!-- Login Form -->
-        <form id="form-login">
+        <div class="form-row">
           <div class="form-group">
-            <label for="login-email">Email Address</label>
-            <input type="email" id="login-email" name="email" required autocomplete="email" placeholder="name@kletech.ac.in">
-          </div>
-          <div class="form-group">
-            <label for="login-password">Password</label>
-            <input type="password" id="login-password" name="password" required autocomplete="current-password" placeholder="Enter your password">
-          </div>
-          <button type="submit" class="btn btn-primary btn-block" id="btn-login">Login</button>
-        </form>
-
-        <!-- Register Form -->
-        <form id="form-register" class="hidden">
-          <div class="form-group">
-            <label for="reg-name">Full Name</label>
-            <input type="text" id="reg-name" name="name" required autocomplete="name" placeholder="John Doe">
-          </div>
-          <div class="form-group">
-            <label for="reg-email">Email Address</label>
-            <input type="email" id="reg-email" name="email" required autocomplete="email" placeholder="name@kletech.ac.in">
-          </div>
-          <div class="form-group">
-            <label for="reg-password">Password</label>
-            <input type="password" id="reg-password" name="password" required autocomplete="new-password" placeholder="Choose a secure password">
-          </div>
-          <div class="form-group">
-            <label for="reg-role">Role</label>
-            <select id="reg-role" name="role" required>
+            <label class="form-label" for="reg-role">Designated Role</label>
+            <select id="reg-role" class="form-control" required onchange="handleRoleChange()">
               <option value="student">Student</option>
+              <option value="cr">Class Representative (CR)</option>
               <option value="faculty">Faculty</option>
               <option value="lab_instructor">Lab Instructor</option>
-              <option value="hod">Head of Department (HOD)</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="reg-department">Department (Optional)</label>
-            <input type="text" id="reg-department" name="department" placeholder="e.g. Computer Science & Engineering">
+            <label class="form-label" for="reg-dept">Department</label>
+            <select id="reg-dept" class="form-control">
+              <option value="CSE">Computer Science &amp; Eng.</option>
+              <option value="EEE">Electrical &amp; Electronics</option>
+              <option value="Civil">Civil Engineering</option>
+              <option value="Mechanical">Mechanical Engineering</option>
+              <option value="Architecture">Architecture</option>
+              <option value="Biotech">Biotechnology</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Conditional fields for CR -->
+        <div id="cr-fields" class="form-row hidden">
+          <div class="form-group">
+            <label class="form-label" for="reg-branch">Branch</label>
+            <input type="text" id="reg-branch" class="form-control" placeholder="e.g. CSE">
           </div>
           <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text);">
-              <input type="checkbox" id="reg-is-cr" name="is_cr" style="width: auto; margin: 0; cursor: pointer;">
-              <span>Class Representative (CR)</span>
-            </label>
+            <label class="form-label" for="reg-division">Division</label>
+            <input type="text" id="reg-division" class="form-control" placeholder="e.g. A">
           </div>
-          <button type="submit" class="btn btn-primary btn-block" id="btn-register">Register</button>
-        </form>
-      </div>
+        </div>
+
+        <div class="form-hint" style="margin-bottom: 1.25rem;">
+          Note: Head of Department (HOD), Administrator, and Club President credentials require administrative elevation.
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-register">
+          Create Account
+        </button>
+      </form>
     </div>
   </div>
 
+  <script src="app.js"></script>
   <script>
-    // Toast notification helper function
-    function showToast(message, type = 'info', duration = 3500) {
-      const container = document.getElementById('toast-container');
-      if (!container) return;
+    function switchMode(mode) {
+      const tabL = document.getElementById('tab-login');
+      const tabR = document.getElementById('tab-register');
+      const formL = document.getElementById('form-login');
+      const formR = document.getElementById('form-register');
 
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      toast.textContent = message;
-
-      container.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-          if (toast.parentNode) {
-            toast.remove();
-          }
-        }, 300);
-      }, duration);
-    }
-
-    // Tab toggle functionality
-    function switchTab(targetTab) {
-      const tabLogin = document.getElementById('tab-login');
-      const tabRegister = document.getElementById('tab-register');
-      const formLogin = document.getElementById('form-login');
-      const formRegister = document.getElementById('form-register');
-
-      if (targetTab === 'login') {
-        tabLogin.classList.add('active');
-        tabRegister.classList.remove('active');
-        formLogin.classList.remove('hidden');
-        formRegister.classList.add('hidden');
-      } else if (targetTab === 'register') {
-        tabRegister.classList.add('active');
-        tabLogin.classList.remove('active');
-        formRegister.classList.remove('hidden');
-        formLogin.classList.add('hidden');
+      if (mode === 'login') {
+        tabL.classList.add('active');
+        tabR.classList.remove('active');
+        formL.classList.remove('hidden');
+        formR.classList.add('hidden');
+      } else {
+        tabR.classList.add('active');
+        tabL.classList.remove('active');
+        formR.classList.remove('hidden');
+        formL.classList.add('hidden');
       }
     }
 
-    document.getElementById('tab-login').addEventListener('click', () => switchTab('login'));
-    document.getElementById('tab-register').addEventListener('click', () => switchTab('register'));
+    function handleRoleChange() {
+      const role = document.getElementById('reg-role').value;
+      const crFields = document.getElementById('cr-fields');
+      if (role === 'cr') {
+        crFields.classList.remove('hidden');
+      } else {
+        crFields.classList.add('hidden');
+      }
+    }
 
-    // Handle Login submission
-    const formLogin = document.getElementById('form-login');
-    const btnLogin = document.getElementById('btn-login');
-
-    formLogin.addEventListener('submit', async (e) => {
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('btn-login');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Signing in...';
 
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
 
-      btnLogin.disabled = true;
-      btnLogin.textContent = 'Logging in...';
-
       try {
-        const response = await fetch('/auth/login', {
+        const res = await api('/auth/login', {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify({ email, password })
         });
-
-        const data = await response.json().catch(() => null);
-
-        if (response.ok) {
-          showToast('Login successful! Redirecting...', 'success');
-          setTimeout(() => {
-            window.location.href = 'resources.html';
-          }, 500);
-        } else {
-          let errorMsg = 'Login failed';
-          if (data && data.detail) {
-            if (Array.isArray(data.detail)) {
-              errorMsg = data.detail.map(d => d.msg || d.message).join(', ');
-            } else {
-              errorMsg = data.detail;
-            }
-          }
-          showToast(errorMsg, 'error');
+        if (res) {
+          showToast('Sign in successful. Redirecting...', 'success');
+          setTimeout(() => { window.location.href = 'resources.html'; }, 500);
         }
       } catch (err) {
-        showToast(err.message || 'Network error. Please try again.', 'error');
+        showToast(err.message || 'Authentication failed', 'error');
       } finally {
-        btnLogin.disabled = false;
-        btnLogin.textContent = 'Login';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
       }
     });
 
-    // Handle Register submission
-    const formRegister = document.getElementById('form-register');
-    const btnRegister = document.getElementById('btn-register');
-
-    formRegister.addEventListener('submit', async (e) => {
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('btn-register');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Processing...';
 
-      const name = document.getElementById('reg-name').value.trim();
-      const email = document.getElementById('reg-email').value.trim();
-      const password = document.getElementById('reg-password').value;
       const role = document.getElementById('reg-role').value;
-      const departmentRaw = document.getElementById('reg-department').value.trim();
-      const department = departmentRaw.length > 0 ? departmentRaw : null;
-      const is_cr = document.getElementById('reg-is-cr').checked;
+      const payload = {
+        name: document.getElementById('reg-name').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        password: document.getElementById('reg-password').value,
+        role: role,
+        department: document.getElementById('reg-dept').value
+      };
 
-      btnRegister.disabled = true;
-      btnRegister.textContent = 'Registering...';
+      if (role === 'cr') {
+        payload.branch = document.getElementById('reg-branch').value.trim() || payload.department;
+        payload.division = document.getElementById('reg-division').value.trim();
+        if (!payload.division) {
+          showToast('Please specify your division (e.g. A, B)', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Create Account';
+          return;
+        }
+      }
 
       try {
-        const response = await fetch('/auth/register', {
+        await api('/auth/register', {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name,
-            email,
-            password,
-            role,
-            department,
-            is_cr
-          })
+          body: JSON.stringify(payload)
         });
-
-        const data = await response.json().catch(() => null);
-
-        if (response.ok) {
-          showToast('Registered! Please login', 'success');
-          formRegister.reset();
-          document.getElementById('login-email').value = email;
-          document.getElementById('login-password').value = '';
-          switchTab('login');
-          document.getElementById('login-password').focus();
-        } else {
-          let errorMsg = 'Registration failed';
-          if (data && data.detail) {
-            if (Array.isArray(data.detail)) {
-              errorMsg = data.detail.map(d => d.msg || d.message).join(', ');
-            } else {
-              errorMsg = data.detail;
-            }
-          }
-          showToast(errorMsg, 'error');
-        }
+        showToast('Registration successful. You can now sign in.', 'success');
+        document.getElementById('login-email').value = payload.email;
+        document.getElementById('login-password').value = '';
+        switchMode('login');
       } catch (err) {
-        showToast(err.message || 'Network error. Please try again.', 'error');
+        showToast(err.message || 'Registration failed', 'error');
       } finally {
-        btnRegister.disabled = false;
-        btnRegister.textContent = 'Register';
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
       }
     });
   </script>

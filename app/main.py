@@ -18,11 +18,15 @@ app.add_middleware(
 )
 
 # Import and include routers
-from app.routers import auth, resources, bookings  # noqa: E402
+from app.routers import auth, resources, bookings, admin, clubs, requests, timetable  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(resources.router)
 app.include_router(bookings.router)
+app.include_router(admin.router)
+app.include_router(clubs.router)
+app.include_router(requests.router)
+app.include_router(timetable.router)
 
 @app.get("/health")
 def health():

@@ -9,70 +9,32 @@ from app.auth import hash_password
 
 USERS = []
 
-# 20 students
-for i in range(1, 21):
-    USERS.append({
-        "email": f"student{i:02d}@example.edu",
-        "name": f"Student {i:02d}",
-        "password_hash": None,  # filled below
-        "role": "student",
-        "is_cr": False,
-        "department": None,
-        "_password": "student123",
-    })
-
-# 1 CR
+# Super Admin
 USERS.append({
-    "email": "cr01@example.edu",
-    "name": "CR 01",
+    "email": "superadmin@kletech.ac.in",
+    "name": "Super Administrator",
     "password_hash": None,
-    "role": "student",
-    "is_cr": True,
+    "role": "super_admin",
     "department": None,
-    "_password": "cr123",
+    "_password": "SuperAdmin@123",
 })
 
-# 3 faculty
-for i in range(1, 4):
-    USERS.append({
-        "email": f"faculty{i:02d}@example.edu",
-        "name": f"Faculty {i:02d}",
-        "password_hash": None,
-        "role": "faculty",
-        "is_cr": False,
-        "department": None,
-        "_password": "faculty123",
-    })
-
-# 1 lab instructor
+# Central Admin
 USERS.append({
-    "email": "lab_instructor01@example.edu",
-    "name": "Lab Instructor 01",
+    "email": "admin@kletech.ac.in",
+    "name": "Campus Administrator",
     "password_hash": None,
-    "role": "lab_instructor",
-    "is_cr": False,
+    "role": "admin",
     "department": None,
-    "_password": "instructor123",
+    "_password": "Admin@123",
 })
 
-# 1 HOD
-USERS.append({
-    "email": "hod01@example.edu",
-    "name": "HOD 01",
-    "password_hash": None,
-    "role": "hod",
-    "is_cr": False,
-    "department": "Civil",
-    "_password": "hod123",
-})
-
-# Admin HODs
+# Named Super Admin & Admin
 USERS.append({
     "email": "ekbotesushilendr0@gmail.com",
-    "name": "Sushilendra Ekbote (Admin)",
+    "name": "Sushilendra Ekbote (Super Admin)",
     "password_hash": None,
-    "role": "hod",
-    "is_cr": False,
+    "role": "super_admin",
     "department": "CSE",
     "_password": "Admin@123",
 })
@@ -81,11 +43,73 @@ USERS.append({
     "email": "vishalkhairamode927@gmail.com",
     "name": "Vishal Khairamode (Admin)",
     "password_hash": None,
-    "role": "hod",
-    "is_cr": False,
+    "role": "admin",
     "department": "CSE",
     "_password": "Admin@123",
 })
+
+# HODs
+USERS.append({
+    "email": "hod_cse@kletech.ac.in",
+    "name": "Dr. CSE Head (HOD)",
+    "password_hash": None,
+    "role": "hod",
+    "department": "CSE",
+    "_password": "Hod@123",
+})
+
+USERS.append({
+    "email": "hod01@example.edu",
+    "name": "HOD Civil",
+    "password_hash": None,
+    "role": "hod",
+    "department": "Civil",
+    "_password": "hod123",
+})
+
+# Faculty
+for i in range(1, 4):
+    USERS.append({
+        "email": f"faculty{i:02d}@example.edu",
+        "name": f"Faculty {i:02d}",
+        "password_hash": None,
+        "role": "faculty",
+        "department": "CSE",
+        "_password": "faculty123",
+    })
+
+# Lab instructor
+USERS.append({
+    "email": "lab_instructor01@example.edu",
+    "name": "Lab Instructor 01",
+    "password_hash": None,
+    "role": "lab_instructor",
+    "department": "CSE",
+    "_password": "instructor123",
+})
+
+# CR
+USERS.append({
+    "email": "cr01@example.edu",
+    "name": "CR CSE-A",
+    "password_hash": None,
+    "role": "cr",
+    "department": "CSE",
+    "branch": "CSE",
+    "division": "A",
+    "_password": "cr123",
+})
+
+# Students
+for i in range(1, 11):
+    USERS.append({
+        "email": f"student{i:02d}@example.edu",
+        "name": f"Student {i:02d}",
+        "password_hash": None,
+        "role": "student",
+        "department": "CSE",
+        "_password": "student123",
+    })
 
 
 def seed_users():
@@ -103,6 +127,8 @@ def seed_users():
                     existing_user.role = u["role"]
                     existing_user.name = u["name"]
                     existing_user.department = u.get("department")
+                    existing_user.branch = u.get("branch")
+                    existing_user.division = u.get("division")
                     updated += 1
             else:
                 if pwd:

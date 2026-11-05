@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Club Affiliation &mdash; Campus Engine</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="flex items-center gap-2">
+          <button id="sidebar-toggle" class="btn btn-ghost btn-sm">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="topbar-title">Student Organizations &amp; Clubs</span>
+        </div>
+      </header>
+
+      <main class="page-body">
+        <div class="grid grid-cols-2 gap-3" style="align-items: start;">
+          <!-- Left Column: Registration Form -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Register a Student Organization</h2>
+                <p class="card-subtitle">Charter an official student club with central administration.</p>
+              </div>
+            </div>
+            <form id="form-register-club">
+              <div class="card-body">
+                <div class="alert alert-info mb-2">
+                  Any enrolled student or CR may petition to charter a student club. Upon administrator review and approval, the designated president account will receive facility reservation privileges across campus venues.
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="club-name">Official Club / Organization Name</label>
+                  <input type="text" id="club-name" class="form-control" required placeholder="e.g. Robotics &amp; Automation Society">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="club-desc">Mission Statement / Objectives</label>
+                  <textarea id="club-desc" class="form-control" rows="3" placeholder="Briefly describe the club's academic, cultural, or technical focus..."></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="club-president-email">Nominated Club President's Campus Email</label>
+                  <input type="email" id="club-president-email" class="form-control" required placeholder="president@kletech.ac.in">
+                  <div class="form-hint">Must belong to an enrolled student account. If approved, their role will be updated to Club President.</div>
+                </div>
+              </div>
+              <div class="card-footer flex justify-end">
+                <button type="submit" class="btn btn-primary" id="btn-submit-club">Submit Charter Application</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Right Column: Status & Directory -->
+          <div>
+            <div class="card mb-3" id="my-club-card" style="display: none;">
+              <div class="card-header">
+                <h3 class="card-title">My Associated Organization</h3>
+              </div>
+              <div class="card-body" id="my-club-content"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Active Chartered Campus Clubs</h3>
+              </div>
+              <div class="card-body" id="active-clubs-list">
+                <div class="text-center text-muted" style="padding: 1.5rem;">Loading active organizations...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    let user = null;
+
+    async function init() {
+      user = await getCurrentUser();
+      if (!user) return;
+      initSidebar(user, 'clubs');
+
+      if (user.role === 'club_president') {
+        await loadMyClub();
+      }
+      await loadActiveClubs();
+    }
+
+    async function loadMyClub() {
+      try {
+        const club = await api('/clubs/mine');
+        if (club) {
+          document.getElementById('my-club-card').style.display = 'block';
+          document.getElementById('my-club-content').innerHTML = `
+            <div class="td-primary" style="font-size: 1.1rem;">${club.name}</div>
+            <div class="text-sm text-muted mt-1">${club.description || 'No description provided.'}</div>
+            <div class="mt-2">
+              Status: ${club.is_active ? '<span class="badge badge-confirmed">Chartered &amp; Active</span>' : '<span class="badge badge-pending">Under Administrative Review</span>'}
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadActiveClubs() {
+      const container = document.getElementById('active-clubs-list');
+      try {
+        const clubs = await api('/clubs/');
+        if (!clubs || clubs.length === 0) {
+          container.innerHTML = '<div class="text-center text-muted" style="padding: 1.5rem;">No chartered clubs listed yet.</div>';
+          return;
+        }
+
+        container.innerHTML = clubs.map(c => `
+          <div style="border-bottom: 1px solid var(--border-light); padding: 0.75rem 0;">
+            <div class="td-primary">${c.name}</div>
+            <div class="text-xs text-muted mt-1">${c.description || 'Chartered campus student organization.'}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="text-danger">${err.message}</div>`;
+      }
+    }
+
+    document.getElementById('form-register-club').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-club');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+      const payload = {
+        name: document.getElementById('club-name').value.trim(),
+        description: document.getElementById('club-desc').value.trim(),
+        president_email: document.getElementById('club-president-email').value.trim()
+      };
+
+      try {
+        const res = await api('/clubs/register', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Application submitted. An administrator will review the charter.', 'success');
+        document.getElementById('form-register-club').reset();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Charter Application';
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Submitted Requests &mdash; Campus Engine</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="flex items-center gap-2">
+          <button id="sidebar-toggle" class="btn btn-ghost btn-sm">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="topbar-title">Reservation Requests Pipeline</span>
+        </div>
+        <div class="topbar-actions">
+          <a href="resources.html" class="btn btn-primary btn-sm">Raise New Request</a>
+        </div>
+      </header>
+
+      <main class="page-body">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <h2 class="card-title">My Pending &amp; Processed Requests</h2>
+            <p class="text-muted text-xs">Track approval status from Department Heads and Central Administration.</p>
+          </div>
+          <div class="flex gap-1">
+            <select id="req-filter-status" class="form-control" style="width: auto;" onchange="loadRequests(1)">
+              <option value="">All Statuses</option>
+              <option value="pending" selected>Pending Review</option>
+              <option value="approved">Approved &amp; Confirmed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap mb-2">
+          <table>
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Target Facility</th>
+                <th>Building &amp; Type</th>
+                <th>Requested Window</th>
+                <th>Purpose / Description</th>
+                <th>Status</th>
+                <th>Reviewer Feedback</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="requests-tbody">
+              <tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;">Loading submitted requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card pagination" id="pagination-bar" style="display: none;">
+          <span class="pagination-info" id="pagination-info">Showing records</span>
+          <div class="pagination-controls">
+            <button class="page-btn" id="btn-prev" disabled>&larr; Previous</button>
+            <button class="page-btn" id="btn-next" disabled>Next &rarr;</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    let user = null;
+    let page = 1;
+    const pageSize = 15;
+
+    async function init() {
+      user = await getCurrentUser();
+      if (!user) return;
+      initSidebar(user, 'requests');
+      await loadRequests(1);
+    }
+
+    async function loadRequests(targetPage = 1) {
+      page = targetPage;
+      const tbody = document.getElementById('requests-tbody');
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading pipeline...</div></td></tr>';
+
+      const status = document.getElementById('req-filter-status').value;
+      const params = new URLSearchParams({ page: page, page_size: pageSize });
+      if (status) params.set('status', status);
+
+      try {
+        const data = await api(`/requests/mine?${params.toString()}`);
+        if (!data || !data.items || data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding: 3rem;">No booking requests submitted under this account.</td></tr>';
+          document.getElementById('pagination-bar').style.display = 'none';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        data.items.forEach(r => {
+          const isPending = r.status === 'pending';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${r.id}</td>
+            <td class="td-primary">${r.resource_name || 'Room ' + r.resource_id}</td>
+            <td>
+              <div>${r.resource_building || 'Campus'}</div>
+              <div class="td-muted">${typeBadge(r.resource_type || 'facility')}</div>
+            </td>
+            <td>
+              <div><strong>${r.date}</strong></div>
+              <div class="td-muted">${r.start} &ndash; ${r.end}</div>
+            </td>
+            <td>${r.purpose}</td>
+            <td>${statusBadge(r.status)}</td>
+            <td>
+              ${r.review_note ? `<div>${r.review_note}</div><div class="td-muted">Reviewed by User #${r.reviewed_by}</div>` : '&mdash;'}
+            </td>
+            <td style="text-align: right;">
+              ${isPending ? `<button class="btn btn-danger btn-sm" onclick="cancelMyRequest(${r.id})">Withdraw</button>` : ''}
+              ${r.booking_id ? `<a href="bookings.html" class="btn btn-ghost btn-sm">View Slot #${r.booking_id}</a>` : ''}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        const totalPages = Math.ceil(data.total / pageSize);
+        document.getElementById('pagination-bar').style.display = 'flex';
+        document.getElementById('pagination-info').textContent = `Page ${data.page} of ${totalPages} (${data.total} requests)`;
+        document.getElementById('btn-prev').disabled = data.page <= 1;
+        document.getElementById('btn-next').disabled = data.page >= totalPages;
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) loadRequests(page - 1); });
+    document.getElementById('btn-next').addEventListener('click', () => loadRequests(page + 1));
+
+    async function cancelMyRequest(id) {
+      if (!confirm(`Are you sure you want to withdraw Request #${id}?`)) return;
+      try {
+        await api(`/requests/${id}`, { method: 'DELETE' });
+        showToast(`Request #${id} withdrawn.`, 'success');
+        loadRequests(page);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Request Queue &mdash; Campus Engine</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="main-content">
+      <header class="topbar">
+        <div class="flex items-center gap-2">
+          <button id="sidebar-toggle" class="btn btn-ghost btn-sm">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="topbar-title">Approval &amp; Review Workflow</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadPending(1)">Refresh Queue</button>
+        </div>
+      </header>
+
+      <main class="page-body">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <h2 class="card-title">Pending Facility Reservation Requests</h2>
+            <p class="text-muted text-xs">Review submissions from Class Representatives, Student Clubs, and Cross-Department Faculty.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap mb-2">
+          <table>
+            <thead>
+              <tr>
+                <th>Req ID</th>
+                <th>Facility</th>
+                <th>Complex &amp; Scope</th>
+                <th>Requester</th>
+                <th>Requested Window</th>
+                <th>Academic Purpose</th>
+                <th>Status</th>
+                <th style="text-align: right;">Review Action</th>
+              </tr>
+            </thead>
+            <tbody id="pending-tbody">
+              <tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;">Loading queue items...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card pagination" id="pagination-bar" style="display: none;">
+          <span class="pagination-info" id="pagination-info">Showing records</span>
+          <div class="pagination-controls">
+            <button class="page-btn" id="btn-prev" disabled>&larr; Previous</button>
+            <button class="page-btn" id="btn-next" disabled>Next &rarr;</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div id="modal-review" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="review-modal-title">Review Reservation Request</h3>
+        <button class="modal-close" onclick="closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="review-modal-desc" class="alert alert-info mb-2"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="review-note">Administrative Note / Feedback</label>
+          <textarea id="review-note" class="form-control" rows="3" placeholder="Optional notes for approval, or mandatory justification for rejection..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+        <button class="btn btn-danger" onclick="submitReview(false)">Reject Request</button>
+        <button class="btn btn-success" onclick="submitReview(true)">Approve &amp; Confirm Slot</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    let user = null;
+    let page = 1;
+    const pageSize = 15;
+    let activeReviewReqId = null;
+
+    async function init() {
+      user = await requireRoles('super_admin', 'admin', 'hod');
+      if (!user) return;
+      initSidebar(user, 'pending');
+      await loadPending(1);
+    }
+
+    async function loadPending(targetPage = 1) {
+      page = targetPage;
+      const tbody = document.getElementById('pending-tbody');
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding: 2.5rem;"><div class="spinner"></div><div class="mt-2">Loading pending review items...</div></td></tr>';
+
+      try {
+        const data = await api(`/requests/pending?page=${page}&page_size=${pageSize}`);
+        if (!data || !data.items || data.items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding: 3rem;">Your approval inbox is clear. No pending requests require action.</td></tr>';
+          document.getElementById('pagination-bar').style.display = 'none';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        data.items.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>#${r.id}</td>
+            <td class="td-primary">${r.resource_name || 'Room ' + r.resource_id}</td>
+            <td>
+              <div>${r.resource_building || 'Campus'}</div>
+              <div class="td-muted">${typeBadge(r.resource_type || 'facility')}</div>
+            </td>
+            <td>
+              <div>User #${r.requester_id}</div>
+              <div class="td-muted">${fmtDate(r.created_at)}</div>
+            </td>
+            <td>
+              <div><strong>${r.date}</strong></div>
+              <div class="td-muted">${r.start} &ndash; ${r.end}</div>
+            </td>
+            <td>${r.purpose}</td>
+            <td>${statusBadge(r.status)}</td>
+            <td style="text-align: right;">
+              <button class="btn btn-primary btn-sm" onclick="openReviewModal(${r.id}, '${r.resource_name || 'Room'}', '${r.date}', '${r.start}-${r.end}')">Review</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        const totalPages = Math.ceil(data.total / pageSize);
+        document.getElementById('pagination-bar').style.display = 'flex';
+        document.getElementById('pagination-info').textContent = `Page ${data.page} of ${totalPages} (${data.total} requests awaiting action)`;
+        document.getElementById('btn-prev').disabled = data.page <= 1;
+        document.getElementById('btn-next').disabled = data.page >= totalPages;
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger" style="padding: 2.5rem;">${err.message}</td></tr>`;
+      }
+    }
+
+    document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) loadPending(page - 1); });
+    document.getElementById('btn-next').addEventListener('click', () => loadPending(page + 1));
+
+    function openReviewModal(id, resName, date, times) {
+      activeReviewReqId = id;
+      document.getElementById('review-modal-title').textContent = `Review Request #${id}`;
+      document.getElementById('review-modal-desc').innerHTML = `
+        Facility: <strong>${resName}</strong><br>
+        Requested Schedule: <strong>${date} (${times})</strong><br>
+        <span class="text-xs">Approval will create a confirmed booking guarded by PostgreSQL EXCLUDE constraints.</span>
+      `;
+      document.getElementById('review-note').value = '';
+      document.getElementById('modal-review').classList.remove('hidden');
+    }
+
+    async function submitReview(approve) {
+      const note = document.getElementById('review-note').value.trim();
+      if (!approve && !note) {
+        showToast('Please state a reason for rejection in the note field', 'error');
+        return;
+      }
+
+      try {
+        const res = await api(`/requests/${activeReviewReqId}/review`, {
+          method: 'POST',
+          body: JSON.stringify({ approve, note })
+        });
+        showToast(
+          approve ? `Request #${activeReviewReqId} approved! Slot confirmed.` : `Request #${activeReviewReqId} rejected.`,
+          approve ? 'success' : 'info'
+        );
+        closeModals();
+        loadPending(page);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+    }
+
+    init();
+  </script>
+</body>
+</html>

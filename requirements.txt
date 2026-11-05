@@ -39,3 +39,7 @@ tzdata==2026.3
 uvicorn==0.52.4                   # ASGI server
 watchfiles==1.2.0
 websockets==17.1
+pdfplumber>=0.11.0
+pillow>=10.0.0
+rapidocr-onnxruntime>=1.4.0
+
